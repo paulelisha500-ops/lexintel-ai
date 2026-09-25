@@ -1,0 +1,93 @@
+@import "tailwindcss";
+@import "@aegov/design-system/src/theme/dark-tokens.css";
+
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+@plugin "@aegov/design-system";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The UAE Design System's dark tokens invert every palette scale, so no
+   dark: overrides are needed for normal surfaces. These fixed tokens are for
+   the few surfaces that stay dark in both themes (photo heroes, footer,
+   sidebar, video frame, tooltips) and must not invert. */
+@theme {
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-night-950: #0e0f12;
+  --color-night-900: #1b1d21;
+  --color-night-800: #232528;
+  --color-gold-100: #f2eccf;
+  --color-gold-300: #d7bc6d;
+  --animate-fade-in: fade-in 180ms ease-out;
+  --animate-slide-up: slide-up 220ms ease-out;
+  --animate-pulse-ring: pulse-ring 1.6s ease-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-aered-600) 55%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-whitely-100 text-aeblack-800 font-body;
+    min-height: 100vh;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+  /* The design system underlines every anchor; in this app most anchors are
+     navigation, cards and buttons. Prose links opt back in with .aegov-link
+     or an explicit underline utility. */
+  a:not(.aegov-link) {
+    text-decoration-line: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-primary-200);
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-xl border border-aeblack-100 bg-whitely-50;
+  }
+  .muted {
+    @apply text-aeblack-500;
+  }
+  .flag-bar {
+    background: linear-gradient(90deg, var(--color-aered-600) 0 25%, var(--color-aegreen-600) 25% 50%, #ffffff 50% 75%, var(--color-night-900) 75%);
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .rec-dot {
+    animation: var(--animate-pulse-ring);
+  }
+}
+
+/* Recharts text follows the theme */
+.recharts-text {
+  fill: currentColor;
+}
+
+@media print {
+  aside, header, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+}

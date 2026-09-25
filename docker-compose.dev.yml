@@ -1,0 +1,13 @@
+# Hot reload for the API while editing backend code:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
+#
+# uvicorn always watches its working directory, so it starts from the source
+# folder: the watcher then covers app/ only, not the index volume or tests.
+# The watcher polls (file events don't cross a Windows/macOS bind mount) and
+# can die under memory pressure -- if edits stop taking effect, restart.
+services:
+  backend:
+    command: sh -c "cd /app/app && exec uvicorn app.main:app --app-dir /app --host 0.0.0.0 --port 8005 --reload"
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"

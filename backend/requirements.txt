@@ -1,0 +1,59 @@
+# This service runs CPU-only (no GPU in the container) -- pull the CPU
+# build of torch from PyTorch's own index instead of the default PyPI
+# wheel, which bundles ~2-3GB of unused CUDA/NVIDIA libraries.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# --- Web framework ---
+fastapi==0.115.0
+# Python 3.11 (see Dockerfile) needs typing_extensions.TypedDict, not
+# typing.TypedDict, for Pydantic v2 schema generation -- explicit here
+# rather than relying on it staying a transitive dep of fastapi/pydantic.
+typing_extensions==4.12.2
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+websockets==13.1
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# --- Task queue / async infra ---
+celery==5.4.0
+redis==5.0.8
+
+# --- LLM / agent orchestration (the "focus" of this build) ---
+langchain==0.3.7
+langchain-community==0.3.5
+langgraph==0.2.45
+faiss-cpu==1.9.0
+sentence-transformers==3.2.1
+
+# --- NLP ---
+spacy==3.8.2
+transformers==4.45.2
+torch==2.4.1+cpu
+
+# --- Computer vision / OCR / document processing ---
+pytesseract==0.3.13
+opencv-python-headless==4.10.0.84
+Pillow==10.4.0
+pdf2image==1.17.0
+numpy==1.26.4
+
+# --- Databases ---
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+pymongo==4.9.1
+neo4j==5.25.0
+elasticsearch==8.15.1
+
+# --- Auth (Module: Security) ---
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.0
+
+# --- Web scraping for law ingestion ---
+httpx==0.27.2
+beautifulsoup4==4.12.3
+pypdf==5.1.0
+
+# --- Utilities ---
+python-dotenv==1.0.1
+tenacity==9.0.0
