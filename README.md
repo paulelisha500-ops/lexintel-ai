@@ -1,5 +1,7 @@
 # LexIntel
 
+Source: [GitHub](https://github.com/paulelisha500-ops/lexintel-ai) · Mirror: [Hugging Face](https://huggingface.co/Elisha622/lexintel-ai)
+
 Court case management and legal-intelligence platform for the UAE — decision
 support for courts, prosecutors and lawyers. Bilingual (Arabic / English,
 full right-to-left), built on the official **UAE Design System**
