@@ -46,7 +46,7 @@ export const DraftStatusLine: React.FC<{ status: DraftStatus | null; className?:
       ? t(`Waiting for the local model (${status.ahead} ahead)…`, `بانتظار النموذج المحلي (${status.ahead} قبلك)…`)
       : t("Starting the local model…", "جارٍ تشغيل النموذج المحلي…"),
     loading: status.progress != null && status.progress < 100
-      ? t(`Downloading the local writing model (first use only)… ${status.progress}%`, `جارٍ تنزيل نموذج الكتابة المحلي (مرة واحدة فقط)… ${status.progress}%`)
+      ? t(`Downloading the local writing model (about 510 MB, first use only)… ${status.progress}%`, `جارٍ تنزيل نموذج الكتابة المحلي (نحو 510 ميجابايت، مرة واحدة فقط)… ${status.progress}%`)
       : t("Loading the local writing model…", "جارٍ تحميل نموذج الكتابة المحلي…"),
     writing: t("Writing a draft with the local model…", "جارٍ كتابة مسودة بالنموذج المحلي…"),
     checking: t("Checking every sentence against the sources…", "جارٍ مطابقة كل جملة مع المصادر…"),

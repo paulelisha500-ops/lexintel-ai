@@ -36,6 +36,7 @@ export function DataTable<T>({
   empty?: React.ReactNode;
   initialSort?: { key: string; dir: "asc" | "desc" };
 }) {
+  const { t } = usePrefs();
   const [sort, setSort] = useState(initialSort);
   const sorted = useMemo(() => {
     if (!rows || !sort) return rows ?? [];
@@ -61,7 +62,7 @@ export function DataTable<T>({
       </div>
     );
   }
-  if (!sorted.length) return <>{empty ?? <EmptyState title="No records" />}</>;
+  if (!sorted.length) return <>{empty ?? <EmptyState title={t("No records", "لا توجد سجلات")} />}</>;
 
   return (
     <div className="overflow-x-auto scrollbar-thin">
@@ -82,7 +83,7 @@ export function DataTable<T>({
                 >
                   {c.sortValue ? (
                     <button
-                      className="inline-flex items-center gap-1 hover:text-primary-700"
+                      className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide hover:text-primary-700"
                       onClick={() => setSort({ key: c.key, dir: active && sort?.dir === "desc" ? "asc" : "desc" })}
                     >
                       {c.header}
@@ -138,7 +139,7 @@ export const Pagination: React.FC<{ total: number; pageSize: number; offset: num
   const Prev = dir === "rtl" ? ChevronRight : ChevronLeft;
   const Next = dir === "rtl" ? ChevronLeft : ChevronRight;
   return (
-    <nav className="aegov-pagination flex items-center justify-between gap-3 px-4 py-3" aria-label="Pagination">
+    <nav className="aegov-pagination flex items-center justify-between gap-3 px-4 py-3" aria-label={t("Pagination", "التنقل بين الصفحات")}>
       <span className="text-sm muted">
         {t(`Page ${page} of ${pages}`, `الصفحة ${page} من ${pages}`)}
       </span>
@@ -169,10 +170,10 @@ export const Pagination: React.FC<{ total: number; pageSize: number; offset: num
 // ---------------------------------------------------------------------------
 
 export const Breadcrumbs: React.FC<{ items: { label: React.ReactNode; to?: string }[] }> = ({ items }) => {
-  const { dir } = usePrefs();
+  const { t, dir } = usePrefs();
   const Sep = dir === "rtl" ? ChevronLeft : ChevronRight;
   return (
-    <nav aria-label="Breadcrumb" className="aegov-breadcrumb mb-2">
+    <nav aria-label={t("Breadcrumb", "مسار التنقل")} className="aegov-breadcrumb mb-2">
       <ol className="flex flex-wrap items-center gap-1.5 text-sm muted">
         {items.map((item, i) => (
           <li key={i} className="flex items-center gap-1.5">

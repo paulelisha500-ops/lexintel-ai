@@ -99,8 +99,20 @@ export function ready(key: ModelKey): boolean {
   return state[key].loaded;
 }
 
+/** Devices that report less memory than a model needs skip it (the feature falls back). */
+const MIN_DEVICE_GB: Partial<Record<ModelKey, number>> = { writer: 8 };
+
+export function deviceTooSmall(key: ModelKey): boolean {
+  const gb = (navigator as any).deviceMemory as number | undefined;
+  return gb !== undefined && gb < (MIN_DEVICE_GB[key] ?? 0);
+}
+
 async function use<T>(key: ModelKey, wait: boolean, run: () => Promise<T>): Promise<T> {
   const s = state[key];
+  if (deviceTooSmall(key)) {
+    s.error = `This device reports ${(navigator as any).deviceMemory} GB of memory; the writing model needs 8 GB.`;
+    throw new ModelUnavailable(s.error);
+  }
   if (!s.loaded) {
     if (!wait) {
       if (!s.loading) warm(key).catch(() => undefined);

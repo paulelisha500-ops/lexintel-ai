@@ -247,11 +247,12 @@ export const Tabs: React.FC<{ tabs: TabDef[]; value: string; onValueChange: (v: 
   onValueChange,
   className,
 }) => {
+  const { t } = usePrefs();
   const visible = tabs.filter((tb) => !tb.hidden);
   return (
     <RTabs.Root value={value} onValueChange={onValueChange} className={className}>
       <div className="aegov-tab overflow-x-auto scrollbar-thin">
-        <RTabs.List className="tab-items gap-6" aria-label="Sections">
+        <RTabs.List className="tab-items gap-6" aria-label={t("Sections", "الأقسام")}>
           {visible.map((tab) => (
             <RTabs.Trigger
               key={tab.value}

@@ -5,7 +5,7 @@
  * mostly don't match. Always ends with exactly one "draft" event.
  */
 import { groundingCheck, renderGrounded, type Grounding } from "./analysis";
-import { describeWriter, generate, MAX_WAITING_DRAFTS, modelState, ModelUnavailable, writerQueueLength, WriterBusy } from "./models";
+import { describeWriter, deviceTooSmall, generate, MAX_WAITING_DRAFTS, modelState, ModelUnavailable, writerQueueLength, WriterBusy } from "./models";
 import { arabicRatio, hasForeignScript, splitSentences, stripMarkdown, wordOverlap } from "./text";
 
 export type DraftEvent =
@@ -92,8 +92,9 @@ export async function* streamGroundedDraft(messages: { role: string; content: st
       yield ["draft", { status: "ai_busy", reason: "The writing model is busy with other drafts." }];
     } else {
       console.warn("draft unavailable", e);
-      yield ["draft", { status: "ai_unavailable", reason: e instanceof ModelUnavailable
-        ? "The writing model could not be loaded on this device." : "The writing model is not available right now." }];
+      yield ["draft", { status: "ai_unavailable", reason: deviceTooSmall("writer")
+        ? "This device does not have enough memory for the writing model."
+        : e instanceof ModelUnavailable ? "The writing model could not be loaded on this device." : "The writing model is not available right now." }];
     }
     return;
   } finally {

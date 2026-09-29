@@ -31,6 +31,23 @@
         "--strictPort"
       ],
       "port": 3015
+    },
+    {
+      "name": "lexintel-space-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev",
+        "--",
+        "--mode",
+        "space",
+        "--port",
+        "3016",
+        "--strictPort"
+      ],
+      "port": 3016
     }
   ]
 }

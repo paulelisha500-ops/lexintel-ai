@@ -377,7 +377,7 @@ export const StatTile: React.FC<{
     <Comp
       onClick={onClick}
       className={cn(
-        "surface flex w-full items-start gap-4 p-5 text-start",
+        "surface flex w-full flex-nowrap items-start justify-start gap-4 p-5 text-start",
         onClick && "transition hover:border-primary-300 hover:shadow-md focus-visible:outline-2"
       )}
     >

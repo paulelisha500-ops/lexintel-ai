@@ -22,7 +22,9 @@ export default function Dashboard() {
   const queue = useCases({ open_only: true, limit: 6 });
   const a = analytics.data;
 
-  const firstName = (user?.fullName ?? "").replace(/^(Judge|القاضي)\s+/i, "").split(" ")[0];
+  // A title rather than a person's name ("System Administrator") gets a plain greeting.
+  const fullName = user?.fullName ?? "";
+  const firstName = /^(system|admin)/i.test(fullName) ? "" : fullName.replace(/^(Judge|Dr\.?|القاضي)\s+/i, "").split(/[ ,]/)[0];
 
   return (
     <div className="space-y-8">

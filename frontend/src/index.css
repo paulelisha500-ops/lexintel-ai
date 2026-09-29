@@ -82,6 +82,33 @@
   }
 }
 
+/* Native controls (scrollbars, date pickers, select lists) follow the theme too. */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+.scrollbar-thin { scrollbar-color: color-mix(in srgb, currentColor 25%, transparent) transparent; }
+
+/* The field's frame carries the background; the control inside must not paint its own
+   (the forms plugin gives text inputs a white fill, which hid typed text in dark mode). */
+.form-control-input input,
+.form-control-input textarea,
+.form-control-input select {
+  background-color: transparent;
+}
+.form-control-input input:not([type=checkbox]):not([type=radio]),
+.form-control-input textarea {
+  border: 0;
+  box-shadow: none;
+}
+
+/* Browser autofill keeps the field's own colours instead of painting it white/yellow. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: currentColor;
+  caret-color: currentColor;
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
 /* Recharts text follows the theme */
 .recharts-text {
   fill: currentColor;

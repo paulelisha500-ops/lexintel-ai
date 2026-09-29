@@ -83,7 +83,7 @@ export default function Cases() {
       {
         key: "file",
         header: t("File", "الملف"),
-        cell: (c) => <span className="text-xs muted">{t(`${c.party_count ?? 0} parties · ${c.evidence_count ?? 0} evidence`, `${c.party_count ?? 0} أطراف · ${c.evidence_count ?? 0} أدلة`)}</span>,
+        cell: (c) => <span className="text-xs muted">{t(`${c.party_count ?? 0} ${(c.party_count ?? 0) === 1 ? "party" : "parties"} · ${c.evidence_count ?? 0} evidence`, `${c.party_count ?? 0} أطراف · ${c.evidence_count ?? 0} أدلة`)}</span>,
         hideOnMobile: true,
       },
     ],
@@ -133,7 +133,7 @@ export default function Cases() {
               {t("Clear filters", "مسح عوامل التصفية")}
             </button>
           )}
-          {cases.data && <span className="ms-auto text-sm muted">{t(`${cases.data.total} cases`, `${cases.data.total} قضية`)}</span>}
+          {cases.data && <span className="ms-auto text-sm muted">{t(`${cases.data.total} ${cases.data.total === 1 ? "case" : "cases"}`, `${cases.data.total} قضية`)}</span>}
         </div>
       </div>
 

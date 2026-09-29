@@ -10,7 +10,7 @@ import { buildInitialDatabase } from "./seed";
 import { resumePendingJobs } from "./jobs";
 import { dispatchRequest, Raw, Sse, Status } from "./router";
 import { HttpError } from "./core";
-import { languageOf, translate } from "./messages";
+import { languageOf, localize, translate } from "./messages";
 import { warm } from "./ai/models";
 import "./routes/auth";
 import "./routes/scheduling";
@@ -52,7 +52,7 @@ function abortError(): DOMException {
   return new DOMException("The operation was aborted.", "AbortError");
 }
 
-function sseResponse(stream: Sse, signal?: AbortSignal | null): Response {
+function sseResponse(stream: Sse, signal?: AbortSignal | null, lang = "en"): Response {
   const encoder = new TextEncoder();
   const events = stream.events;
   const body = new ReadableStream<Uint8Array>({
@@ -67,7 +67,7 @@ function sseResponse(stream: Sse, signal?: AbortSignal | null): Response {
         const { value, done } = await events.next();
         if (done) { controller.close(); return; }
         const [event, data] = value;
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(localize(data, lang))}\n\n`));
       } catch (e) {
         console.error("stream failed", e);
         controller.error(e);
@@ -93,15 +93,15 @@ export async function localFetch(path: string, init: RequestInit = {}): Promise<
       ? await Promise.race([work, new Promise<never>((_, reject) => init.signal!.addEventListener("abort", () => reject(abortError()), { once: true }))])
       : await work;
     save();
-    if (result instanceof Sse) return sseResponse(result, init.signal);
+    if (result instanceof Sse) return sseResponse(result, init.signal, lang);
     if (result instanceof Raw) {
       return new Response(result.body, { status: 200, headers: {
         "Content-Type": result.contentType,
         ...(result.filename ? { "Content-Disposition": `inline; filename="${encodeURIComponent(result.filename)}"` } : {}),
       } });
     }
-    if (result instanceof Status) return json(result.status, result.body ?? undefined, { "X-Request-ID": requestId });
-    return json(200, result ?? null, { "X-Request-ID": requestId });
+    if (result instanceof Status) return json(result.status, localize(result.body, lang) ?? undefined, { "X-Request-ID": requestId });
+    return json(200, localize(result, lang) ?? null, { "X-Request-ID": requestId });
   } catch (e) {
     if ((e as Error)?.name === "AbortError") throw e;
     if (e instanceof HttpError) {
@@ -114,3 +114,6 @@ export async function localFetch(path: string, init: RequestInit = {}): Promise<
     return json(500, { detail: translate("Something went wrong on our side. The error has been logged.", lang), request_id: requestId });
   }
 }
+
+// Development builds expose the in-browser API for automated checks from the console.
+if (import.meta.env.DEV) (window as any).__lexintel = { localFetch, boot };

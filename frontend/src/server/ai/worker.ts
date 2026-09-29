@@ -20,6 +20,7 @@ env.allowLocalModels = false;
  * those are kept in memory for this session instead, so the model still runs.
  */
 const inMemory = new Map<string, Blob>();
+const partial = new Map<string, Blob[]>();
 const CACHE_NAME = "transformers-cache";
 env.useBrowserCache = false;
 env.useCustomCache = true;
@@ -85,8 +86,10 @@ async function prefetch(model: string, repo: string, file: string): Promise<void
   const total = Number(head.headers.get("content-range")?.split("/")[1] ?? head.headers.get("content-length"));
   if (!head.ok || !total) throw new Error(`Could not reach ${file} (HTTP ${head.status}).`);
   const CHUNK = 16 * 1024 * 1024;
-  const parts: Blob[] = [];
-  for (let start = 0; start < total; start += CHUNK) {
+  // Chunks already downloaded survive a failed attempt, so "try again" resumes instead of restarting.
+  const parts = (partial.get(url) ?? []) as Blob[];
+  partial.set(url, parts);
+  for (let start = parts.length * CHUNK; start < total; start += CHUNK) {
     const end = Math.min(total, start + CHUNK) - 1;
     for (let attempt = 1; ; attempt++) {
       try {
@@ -97,12 +100,13 @@ async function prefetch(model: string, repo: string, file: string): Promise<void
         parts.push(blob);
         break;
       } catch (e) {
-        if (attempt >= 5) throw new Error(`Downloading ${file} failed: ${(e as Error).message}`);
-        await new Promise((res) => setTimeout(res, 1000 * attempt));
+        if (attempt >= 10) throw new Error(`Downloading ${file} failed: ${(e as Error).message}. Check the connection and try again; the download resumes where it stopped.`);
+        await new Promise((res) => setTimeout(res, Math.min(30_000, 1000 * 2 ** (attempt - 1))));
       }
     }
     scope.postMessage({ kind: "progress", model, file, progress: Math.round(((end + 1) / total) * 100) });
   }
+  partial.delete(url);
   const blob = new Blob(parts);
   try {
     await cache.put(url, new Response(blob, { headers: { "content-type": "application/octet-stream", "content-length": String(total) } }));
@@ -125,8 +129,12 @@ function load(model: keyof typeof MODELS): Promise<any> {
       // but on common integrated GPUs its half-precision maths overflows and the model
       // writes nonsense; a draft that is slower and correct is the only useful kind.
       p = (async () => {
-        await prefetch(model, MODELS.writer, "onnx/model_quantized.onnx");
-        return pipeline("text-generation", MODELS.writer, { dtype: "q8", device: "wasm", progress_callback: cb });
+        const file = "onnx/model_quantized.onnx";
+        await prefetch(model, MODELS.writer, file);
+        const pipe = await pipeline("text-generation", MODELS.writer, { dtype: "q8", device: "wasm", progress_callback: cb });
+        // The runtime holds its own copy now; don't keep a second one in memory.
+        inMemory.delete(`https://huggingface.co/${MODELS.writer}/resolve/main/${file}`);
+        return pipe;
       })();
     }
     loaded[model] = p.then(

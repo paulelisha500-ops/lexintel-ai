@@ -103,7 +103,7 @@ export default function Research() {
           "تأتي الإجابات حصراً من النصوص في المكتبة القانونية مع الإحالة إلى المواد، وهي تشرح القانون ولا تتنبأ بالأحكام.")}
         meta={stats.data && (
           <Badge tone="neutral" icon={<Library className="size-3" />}>
-            {t(`${stats.data.articles} articles indexed`, `${stats.data.articles} مادة مفهرسة`)}
+            {t(`${stats.data.articles} ${stats.data.articles === 1 ? "article" : "articles"} indexed`, `${stats.data.articles} مادة مفهرسة`)}
           </Badge>
         )}
       />

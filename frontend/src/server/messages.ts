@@ -102,3 +102,79 @@ export function translate(detail: unknown, lang: string): unknown {
 export function languageOf(header: string | null): "ar" | "en" {
   return (header ?? "").split(",")[0].trim().toLowerCase().startsWith("ar") ? "ar" : "en";
 }
+
+// ---------------------------------------------------------------------------
+// Explanations that accompany results (draft status, research notes, disclaimers).
+// Translated sentence by sentence, so a message built from several parts is covered.
+// ---------------------------------------------------------------------------
+
+const SENTENCES_AR: Record<string, string> = {
+  "The writing model is busy with other drafts.": "نموذج الكتابة مشغول بمسودات أخرى.",
+  "The draft drifted into another language, so it was withheld.": "انحرفت المسودة إلى لغة أخرى، لذا حُجبت.",
+  "The draft was not written in Arabic, so it was withheld.": "لم تُكتب المسودة بالعربية، لذا حُجبت.",
+  "The draft was not written in English, so it was withheld.": "لم تُكتب المسودة بالإنجليزية، لذا حُجبت.",
+  "The writing model returned nothing.": "لم يُرجع نموذج الكتابة أي نص.",
+  "The draft did not match the sources closely enough, so it was withheld.": "لم تطابق المسودة المصادر بدرجة كافية، لذا حُجبت.",
+  "The writing model could not be loaded on this device.": "تعذّر تحميل نموذج الكتابة على هذا الجهاز.",
+  "The writing model is not available right now.": "نموذج الكتابة غير متاح حالياً.",
+  "This device does not have enough memory for the writing model.": "لا تتوفر على هذا الجهاز ذاكرة كافية لنموذج الكتابة.",
+  "The quoted key facts above are unaffected.": "الوقائع الرئيسية المقتبسة أعلاه لم تتأثر.",
+  "The draft could not be written just now.": "تعذّرت كتابة المسودة الآن.",
+  "The file has too little text for a useful draft yet -- the key facts above are the whole file.": "لا يحتوي الملف بعد على نص كافٍ لمسودة مفيدة، والوقائع الرئيسية أعلاه هي كل ما في الملف.",
+  "Draft by a small local model, checked against the key facts above.": "مسودة كتبها نموذج محلي صغير، وطوبقت مع الوقائع الرئيسية أعلاه.",
+  "Sentences that match no note are marked, and so are figures the notes don't contain.": "تُميَّز الجمل التي لا تطابق أي ملاحظة، وكذلك الأرقام غير الواردة في الملاحظات.",
+  "It can still join two facts that belong apart, so read it against the notes below.": "قد يجمع بين واقعتين منفصلتين، لذا راجعه مقابل الملاحظات أدناه.",
+  "Draft written by a small local model and checked against the sources: sentences that match no source are marked, and so are figures the sources don't contain.": "مسودة كتبها نموذج محلي صغير وطوبقت مع المصادر: تُميَّز الجمل التي لا تطابق أي مصدر، وكذلك الأرقام غير الواردة في المصادر.",
+  "It can still join two points that belong apart, so read the cited articles before relying on it.": "قد يجمع بين نقطتين منفصلتين، لذا اقرأ المواد المستشهد بها قبل الاعتماد عليه.",
+  "The most relevant in-force articles and key passages are shown instead.": "وتُعرض بدلاً من ذلك أهم المواد السارية والمقاطع الرئيسية.",
+  "The Law Library is empty.": "مكتبة القوانين فارغة.",
+  "Upload official law PDFs in the Law Library to enable research.": "ارفع ملفات القوانين الرسمية في مكتبة القوانين لتفعيل البحث.",
+  "No in-force article in the Law Library matched this question.": "لم تطابق أي مادة سارية في مكتبة القوانين هذا السؤال.",
+  "These are the most relevant in-force articles.": "هذه أهم المواد السارية ذات الصلة.",
+  "Read them in full before relying on them.": "اقرأها كاملة قبل الاعتماد عليها.",
+  "The law library could not be searched just now.": "تعذّر البحث في مكتبة القوانين الآن.",
+  "Please try again.": "يرجى المحاولة مرة أخرى.",
+  "Leads for review only -- similarity says nothing about the outcome of either case.": "مؤشرات للمراجعة فقط، والتشابه لا يدل على نتيجة أي من القضيتين.",
+  "Connections are leads for a human to review, not conclusions.": "الروابط مؤشرات يراجعها شخص، وليست استنتاجات.",
+  "Key sentences are quoted from the file.": "الجمل الرئيسية مقتبسة من الملف.",
+  "Offence mentions show where a topic is discussed; they are not charges and say nothing about whether anything happened.": "تُظهر الإشارات إلى الجرائم مواضع ذكر الموضوع؛ وهي ليست تهماً ولا تدل على وقوع أي شيء.",
+  "Lists differences in stated facts only.": "يسرد الاختلافات في الوقائع المذكورة فقط.",
+  "It does not assess truthfulness or credibility.": "ولا يقيّم الصدق أو المصداقية.",
+  "No point described in both sources states different figures, dates or times.": "لا توجد نقطة مذكورة في المصدرين بأرقام أو تواريخ أو أوقات مختلفة.",
+};
+
+const SENTENCE_TEMPLATES_AR: [RegExp, string][] = [
+  [/^(\d+) sentence\(s\) that matched no (?:note|source) were removed\.$/, "حُذفت {0} جملة لم تطابق أي مصدر."],
+  [/^(\d+) sentence\(s\) could not be matched to any source and are marked\.$/, "{0} جملة لم تطابق أي مصدر وهي مميّزة."],
+  [/^(\d+) point\(s\) are described in both sources with different figures, dates or times\.$/, "{0} نقطة مذكورة في المصدرين بأرقام أو تواريخ أو أوقات مختلفة."],
+];
+
+/** Translate an explanation built from known English sentences; unknown sentences stay as they are. */
+export function translateText(text: string | null | undefined, lang: string): string | null | undefined {
+  if (lang !== "ar" || !text) return text;
+  const sentences = text.match(/[^.!?]+(?:[.!?](?!\d)|$)(?:\s+|$)/g) ?? [text];
+  // Rejoin fragments that a known sentence spans (e.g. "--" or ":" inside it).
+  const out: string[] = [];
+  let buffer = "";
+  for (const raw of sentences) {
+    buffer += raw;
+    const s = buffer.trim();
+    const exact = SENTENCES_AR[s];
+    const template = SENTENCE_TEMPLATES_AR.find(([re]) => re.test(s));
+    if (exact) { out.push(exact); buffer = ""; continue; }
+    if (template) { const m = s.match(template[0])!; out.push(template[1].replace(/\{(\d+)\}/g, (_, i) => m[Number(i) + 1])); buffer = ""; continue; }
+    if (!Object.keys(SENTENCES_AR).some((k) => k.startsWith(s))) { out.push(s); buffer = ""; }
+  }
+  if (buffer.trim()) out.push(buffer.trim());
+  return out.join(" ");
+}
+
+/** Translate the explanation fields of a result object in place (and return it). */
+export function localize<T>(value: T, lang: string): T {
+  if (lang !== "ar" || !value || typeof value !== "object") return value;
+  const v = value as Record<string, unknown>;
+  for (const key of ["reason", "review_reason", "note", "disclaimer", "ai_summary"]) {
+    if (typeof v[key] === "string") v[key] = translateText(v[key] as string, lang);
+  }
+  return value;
+}

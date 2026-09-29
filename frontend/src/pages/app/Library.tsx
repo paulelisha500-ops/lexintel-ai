@@ -35,7 +35,7 @@ export default function LibraryPage() {
   };
 
   const remove = async (d: LawDocument) => {
-    const ok = await confirm({ title: t("Remove this law?", "إزالة هذا القانون؟"), body: t(`"${d.title}" and its ${d.article_count ?? 0} articles will be removed from research.`, `ستُزال «${d.title}» وموادها (${d.article_count ?? 0}) من البحث.`), confirmLabel: t("Remove", "إزالة"), danger: true });
+    const ok = await confirm({ title: t("Remove this law?", "إزالة هذا القانون؟"), body: t(`"${d.title}" and its ${d.article_count ?? 0} article(s) will be removed from research.`, `ستُزال «${d.title}» وموادها (${d.article_count ?? 0}) من البحث.`), confirmLabel: t("Remove", "إزالة"), danger: true });
     if (!ok) return;
     try {
       await api.del(`/library/documents/${d.id}`);

@@ -173,7 +173,7 @@ export const AppLayout: React.FC = () => {
             {user && (
               <Menu
                 trigger={
-                  <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-aeblack-50">
+                  <button className="flex flex-nowrap items-center justify-start gap-2 rounded-xl px-2 py-1.5 hover:bg-aeblack-50">
                     <Avatar name={user.fullName} size="sm" />
                     <span className="hidden text-start leading-tight sm:block">
                       <span className="block max-w-40 truncate text-sm font-medium">{user.fullName}</span>

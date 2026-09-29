@@ -92,7 +92,7 @@ export const RulingTab: React.FC<{ c: CaseDetailResponse }> = ({ c }) => {
       </Card>
       <Card title={t("Before ruling", "قبل الحكم")}>
         <ul className="space-y-3 text-sm">
-          <li>• {t(`${c.parties.length} parties on record`, `${c.parties.length} من الأطراف مسجلون`)}</li>
+          <li>• {t(`${c.parties.length} ${c.parties.length === 1 ? "party" : "parties"} on record`, `${c.parties.length} من الأطراف مسجلون`)}</li>
           <li>• {t(`${c.evidence_summary.total} evidence files (${c.evidence_summary.pending_review} pending review)`, `${c.evidence_summary.total} ملف أدلة (${c.evidence_summary.pending_review} بانتظار المراجعة)`)}</li>
           <li>• {t(`${c.statement_count ?? 0} statements`, `${c.statement_count ?? 0} إفادة`)}</li>
           <li>• {t(`${c.research_note_count} saved research notes`, `${c.research_note_count} بحث محفوظ`)}</li>

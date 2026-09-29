@@ -298,7 +298,7 @@ route("GET", "/cases/{case_id}/related", (req) => {
     const common = [...refs(o.id)].filter((r) => mine.has(r));
     return common.length ? { case_id: o.id, case_number: o.case_number, title: o.title, citations: common } : null;
   }).filter(Boolean) : [];
-  return { source: "fallback", shared_parties, shared_citations, note: "Connections are leads for a human to review, not conclusions." };
+  return { source: "records", shared_parties, shared_citations, note: "Connections are leads for a human to review, not conclusions." };
 });
 
 // ---------------------------------------------------------------------------

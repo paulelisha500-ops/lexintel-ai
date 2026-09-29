@@ -29,6 +29,8 @@ const queryClient = new QueryClient({
 // A static host has no server to answer deep links, so the self-contained build keeps the route in the URL hash.
 const Router = IN_BROWSER_SERVER ? HashRouter : BrowserRouter;
 
+if (import.meta.env.DEV) void import("./devtools");
+
 const ThemedToaster: React.FC = () => {
   const { theme, dir } = usePrefs();
   return <Toaster theme={theme} dir={dir} position={dir === "rtl" ? "bottom-left" : "bottom-right"} richColors closeButton />;
