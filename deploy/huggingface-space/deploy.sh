@@ -20,6 +20,8 @@ echo "==> building the self-contained frontend"
 echo "==> preparing the Space repository"
 git clone --quiet "$SPACE_URL" "$WORK/space"
 cd "$WORK/space"
+git config user.name "$(git -C "$ROOT" config user.name || echo LexIntel)"
+git config user.email "$(git -C "$ROOT" config user.email || echo noreply@lexintel.local)"
 git lfs install --local >/dev/null
 git lfs track "*.wasm" "*.jpg" "*.jpeg" "*.png" "*.webp" >/dev/null
 find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .gitattributes -exec rm -rf {} +
