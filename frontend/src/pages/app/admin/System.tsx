@@ -9,6 +9,8 @@ import { PageHeader } from "../../../components/ui/data";
 import { usePrefs } from "../../../lib/prefs";
 
 const SERVICE_INFO: Record<string, { name: [string, string]; role: [string, string]; fallbackKey?: string }> = {
+  database: { name: ["Database", "قاعدة البيانات"], role: ["Cases, complaints, hearings, evidence files, statements, audit log", "القضايا والشكاوى والجلسات وملفات الأدلة والإفادات وسجل التدقيق"] },
+  background_jobs: { name: ["Background jobs", "المهام الخلفية"], role: ["OCR, AI triage, law indexing, transcription", "قراءة المستندات والفرز الآلي وفهرسة القوانين والتفريغ"] },
   postgres: { name: ["PostgreSQL", "PostgreSQL"], role: ["Cases, complaints, hearings, people, rulings, audit log", "القضايا والشكاوى والجلسات والأشخاص والأحكام وسجل التدقيق"] },
   mongo: { name: ["MongoDB", "MongoDB"], role: ["Courtroom sessions, statements, evidence text", "جلسات المنصة والإفادات ونصوص الأدلة"], fallbackKey: "mongo" },
   redis: { name: ["Redis", "Redis"], role: ["Job queue and rate limits", "قائمة المهام وحدود الطلبات"] },
@@ -110,7 +112,7 @@ const AIModels: React.FC<{ models: AIModelStatus[]; memory?: MachineMemory; onCh
   };
 
   return (
-    <Card title={t("AI models on this server", "نماذج الذكاء الاصطناعي على هذا الخادم")}
+    <Card title={t("Local AI models", "نماذج الذكاء الاصطناعي المحلية")}
       subtitle={t("All AI runs locally — nothing is sent to an outside AI service. Models load when needed and unload when idle to save memory.",
         "يعمل كل الذكاء الاصطناعي محلياً ولا يُرسل شيء إلى خدمة خارجية. تُحمّل النماذج عند الحاجة وتُفرغ عند الخمول لتوفير الذاكرة.")}>
       {memory?.free_mb != null && (
@@ -131,6 +133,7 @@ const AIModels: React.FC<{ models: AIModelStatus[]; memory?: MachineMemory; onCh
           const state = m.enabled === false ? ["neutral", t("Switched off", "متوقف")]
             : !m.available ? ["error", t("Unavailable", "غير متاح")]
             : m.loaded ? ["success", m.in_use ? t("Working", "يعمل الآن") : t("Loaded", "محمّل")]
+            : m.loading ? ["info", m.progress != null && m.progress < 100 ? t(`Downloading… ${m.progress}%`, `جارٍ التنزيل… ${m.progress}%`) : t("Loading…", "جارٍ التحميل…")]
             : m.loaded === null ? ["success", t("Ready", "جاهز")]
             : ["neutral", t("Idle — loads on use", "خامل — يُحمّل عند الاستخدام")];
           return (

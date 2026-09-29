@@ -1,9 +1,9 @@
 #!/bin/bash
-# Starts every LexIntel service inside the Hugging Face Space container.
+# Starts every LexIntel service inside the single container (see the root Dockerfile).
 #
-# Data lives in /data when the Space has persistent storage, otherwise in the
-# home directory, which is wiped whenever the Space restarts. The demo
-# accounts and records are (re)seeded on every start either way.
+# Data lives in /data when a persistent volume is mounted there, otherwise in
+# the home directory (lost when the container is recreated). The initial
+# accounts and records are seeded on start; existing data is never replaced.
 set -euo pipefail
 
 if [ -d /data ] && [ -w /data ]; then DATA=/data/lexintel; else DATA=$HOME/data; fi
@@ -11,7 +11,7 @@ mkdir -p "$DATA"/{pg,mongo,redis,uploads,faiss,logs} /tmp/nginx
 LOGS=$DATA/logs
 export UPLOAD_DIR=$DATA/uploads
 export FAISS_INDEX_PATH=$DATA/faiss/faiss_uae_law_index
-export DEMO_PASSWORD=${DEMO_PASSWORD:-LexIntel@2026}
+export SEED_PASSWORD=${SEED_PASSWORD:-LexIntel@2026}
 
 # Keep one signing key per data directory, so a restart with persistent
 # storage doesn't sign everyone out or break complaint tracking codes.
@@ -50,15 +50,15 @@ echo "[start] nginx on :7860"
 nginx -c /app/deploy/nginx.conf -g 'daemon off;' &
 NGINX_PID=$!
 
-# Seed the demo once the API answers (it lends the seed its embedding model).
+# Seed once the API answers (it lends the seed its embedding model).
 (
     for _ in $(seq 1 120); do
         curl -fs http://127.0.0.1:8005/health >/dev/null 2>&1 && break
         sleep 2
     done
-    echo "[start] seeding demo data"
-    python -m scripts.seed_demo --refresh && echo "[start] demo data ready" \
-        || echo "[start] demo seeding failed (the app still runs)"
+    echo "[start] seeding initial accounts and records"
+    python -m scripts.seed_data --refresh && echo "[start] initial records ready" \
+        || echo "[start] seeding failed (the app still runs)"
 ) &
 
 # If the API or nginx exits, stop the container so the Space restarts it.

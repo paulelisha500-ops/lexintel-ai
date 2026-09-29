@@ -172,7 +172,7 @@ export default function Research() {
             <ol className="list-decimal space-y-2 ps-4 text-sm muted">
               <li>{t("The library is searched by meaning and by keyword; law not in force on the date is removed.", "يُبحث في المكتبة حسب المعنى والكلمات، ويُستبعد القانون غير الساري في التاريخ.")}</li>
               <li>{t("The sentences that answer the question are quoted from the articles.", "تُقتبس من المواد الجمل التي تجيب عن السؤال.")}</li>
-              <li>{t("A small model on this server writes a short draft from those articles only.", "يكتب نموذج صغير على هذا الخادم مسودة قصيرة من تلك المواد فقط.")}</li>
+              <li>{t("A small local model writes a short draft from those articles only.", "يكتب نموذج محلي صغير مسودة قصيرة من تلك المواد فقط.")}</li>
               <li>{t("Every sentence of the draft is checked against the articles; anything not found is marked.", "تُطابق كل جملة من المسودة مع المواد، ويُعلَّم ما لا يوجد فيها.")}</li>
             </ol>
           </Card>

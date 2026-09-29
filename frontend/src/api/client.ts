@@ -4,7 +4,18 @@
  * ApiError with a human-readable message (backend `detail` string or object).
  */
 
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8005/api/v1";
+/** True in the self-contained build: the API runs inside the browser (src/server) instead of on a server. */
+export const IN_BROWSER_SERVER = import.meta.env.VITE_IN_BROWSER_SERVER === "true";
+
+export const API_BASE = IN_BROWSER_SERVER ? "" : (import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8005/api/v1";
+
+const inBrowserServer = IN_BROWSER_SERVER ? import("../server") : null;
+
+/** `fetch` against the API, wherever it runs. */
+async function transport(path: string, init: RequestInit): Promise<Response> {
+  if (inBrowserServer) return (await inBrowserServer).localFetch(path, init);
+  return fetch(`${API_BASE}${path}`, init);
+}
 
 export class ApiError extends Error {
   status: number;
@@ -70,7 +81,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetch(`${API_BASE}${path}`, { ...init, headers, signal: init.signal ?? controller.signal });
+      return await transport(path, { ...init, headers, signal: init.signal ?? controller.signal });
     } finally {
       window.clearTimeout(timer);
     }
@@ -131,6 +142,23 @@ export function uploadWithProgress<T>(
   onProgress?: (fraction: number) => void,
   timeoutMs = 30 * 60 * 1000
 ): Promise<T> {
+  if (inBrowserServer) {
+    // Nothing crosses a network here, so the upload completes in one step.
+    return (async () => {
+      onProgress?.(0);
+      const res = await transport(path, {
+        method: "POST", body: form,
+        headers: { "Accept-Language": currentLang, ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}) },
+      });
+      onProgress?.(1);
+      const text = await res.text();
+      let body: any = null;
+      try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+      if (res.status === 401) onUnauthorized?.();
+      if (!res.ok) throw new ApiError(res.status, messageFrom(res.status, body), body);
+      return body as T;
+    })();
+  }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}${path}`);
@@ -171,7 +199,7 @@ export async function streamEvents(
 ): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await transport(path, {
       method: "POST",
       headers: {
         Accept: "text/event-stream",
@@ -230,7 +258,7 @@ export async function streamEvents(
 
 /** Fetch a protected file as a blob URL (for previews/downloads that need the auth header). */
 export async function fetchBlobUrl(path: string): Promise<string> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await transport(path, {
     headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},
   });
   if (res.status === 401) onUnauthorized?.();

@@ -214,7 +214,7 @@ word rather than as an abbreviation.
 
 - Don't add a field like `emotion_state`, `deception_score`, or
   `truthfulness` anywhere in `app/models/schemas.py` or `app/db/orm_models.py`. If you find yourself
-  wanting one, that's a sign the feature belongs in a research prototype
+  wanting one, that's a sign the feature belongs in a separate research project
   explicitly labeled as unvalidated, not in a system a real court uses.
 - Don't add a code path that lets an agent write to `CaseRuling`. Keep
   ruling entry behind `Depends(require_role(SystemRole.JUDGE))`
@@ -235,8 +235,8 @@ word rather than as an abbreviation.
   reference, not open-ended identification), should have a manual
   fallback that's just as easy to use as the automated path, and should
   go through your court's data-protection and legal review before
-  production use -- this repo is a working prototype, not a compliance
-  sign-off. The UAE's Federal Decree-Law No. 45 of 2021 on the Protection
+  production use -- the software is not a compliance sign-off
+  in itself. The UAE's Federal Decree-Law No. 45 of 2021 on the Protection
   of Personal Data is the relevant starting point for that review; this
   isn't legal advice, and you should involve counsel before deploying
   anything that captures biometric data of real case parties.

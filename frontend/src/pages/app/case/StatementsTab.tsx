@@ -10,6 +10,9 @@ import { fmtDateTime, fmtDuration } from "../../../lib/format";
 import { label } from "../../../lib/labels";
 import { usePrefs } from "../../../lib/prefs";
 
+/** Statement times may arrive without a zone (they are UTC); read them as UTC either way. */
+const utcTime = (value: string) => new Date(/(Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`).getTime();
+
 export const TRANSCRIPT_STATUS: Record<string, [string, string]> = {
   none: ["No transcript", "لا يوجد تفريغ"],
   live: ["Recording", "قيد التسجيل"],
@@ -34,7 +37,7 @@ export const StatementsTab: React.FC<{ c: CaseDetailResponse }> = ({ c }) => {
       ) : (
         <ul className="divide-y divide-aeblack-50">
           {statements.data.map((s) => {
-            const seconds = s.started_at && s.ended_at ? (new Date(s.ended_at + "Z").getTime() - new Date(s.started_at + "Z").getTime()) / 1000 : null;
+            const seconds = s.started_at && s.ended_at ? (utcTime(s.ended_at) - utcTime(s.started_at)) / 1000 : null;
             const st = TRANSCRIPT_STATUS[s.transcript_status] ?? [s.transcript_status, s.transcript_status];
             return (
               <li key={s.id} className="flex flex-wrap items-center gap-4 px-5 py-4">

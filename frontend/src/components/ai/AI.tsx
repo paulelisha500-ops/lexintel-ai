@@ -24,11 +24,11 @@ export function stripMarkdown(text: string): string {
     .replace(/\n{3,}/g, "\n\n");
 }
 
-/** Small "made on this server" marker for AI output. */
+/** Small "made by a local model" marker for AI output. */
 export const LocalAIBadge: React.FC<{ model?: string | null; label?: string }> = ({ model, label }) => {
   const { t } = usePrefs();
   return (
-    <Tooltip content={t("Runs on this court's own server. Nothing is sent to an outside AI service.", "يعمل على خادم المحكمة نفسه، ولا يُرسل أي شيء إلى خدمة ذكاء اصطناعي خارجية.")}>
+    <Tooltip content={t("Runs locally. Nothing is sent to an outside AI service.", "يعمل محلياً، ولا يُرسل أي شيء إلى خدمة ذكاء اصطناعي خارجية.")}>
       <span className="inline-flex">
         <Badge tone="info" icon={<Cpu className="size-3" />}>{label ?? t("Local AI", "ذكاء اصطناعي محلي")}{model ? ` · ${model}` : ""}</Badge>
       </span>
@@ -45,7 +45,10 @@ export const DraftStatusLine: React.FC<{ status: DraftStatus | null; className?:
     waiting: status.ahead
       ? t(`Waiting for the local model (${status.ahead} ahead)…`, `بانتظار النموذج المحلي (${status.ahead} قبلك)…`)
       : t("Starting the local model…", "جارٍ تشغيل النموذج المحلي…"),
-    writing: t("Writing a draft on this server…", "جارٍ كتابة مسودة على هذا الخادم…"),
+    loading: status.progress != null && status.progress < 100
+      ? t(`Downloading the local writing model (first use only)… ${status.progress}%`, `جارٍ تنزيل نموذج الكتابة المحلي (مرة واحدة فقط)… ${status.progress}%`)
+      : t("Loading the local writing model…", "جارٍ تحميل نموذج الكتابة المحلي…"),
+    writing: t("Writing a draft with the local model…", "جارٍ كتابة مسودة بالنموذج المحلي…"),
     checking: t("Checking every sentence against the sources…", "جارٍ مطابقة كل جملة مع المصادر…"),
   }[status.phase];
   return (

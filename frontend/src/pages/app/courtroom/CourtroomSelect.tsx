@@ -51,7 +51,7 @@ export default function CourtroomSelect() {
             <p className="font-semibold">{t("How the stand works", "كيف تعمل المنصة")}</p>
             <ol className="mt-2 list-decimal space-y-1 ps-5 muted">
               <li>{t("Call one person at a time and confirm their identity.", "استدعِ شخصاً واحداً في كل مرة وأكّد هويته.")}</li>
-              <li>{t("Speech is transcribed live on this server.", "يُفرَّغ الكلام مباشرة على هذا الخادم.")}</li>
+              <li>{t("Speech is transcribed live by the local speech model.", "يُفرَّغ الكلام مباشرة بنموذج الكلام المحلي.")}</li>
               <li>{t("Review and correct the transcript at step-down.", "راجع التفريغ وصحّحه عند الانصراف.")}</li>
               <li>{t("The recording uploads and is transcribed again at full quality.", "يُرفع التسجيل ويُفرَّغ مجدداً بجودة كاملة.")}</li>
             </ol>

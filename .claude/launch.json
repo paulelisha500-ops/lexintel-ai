@@ -4,8 +4,33 @@
     {
       "name": "lexintel-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "--port", "3005"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3005"
+      ],
       "port": 3005
+    },
+    {
+      "name": "lexintel-space",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "vite",
+        "preview",
+        "frontend",
+        "--outDir",
+        "../dist-space",
+        "--port",
+        "3015",
+        "--strictPort"
+      ],
+      "port": 3015
     }
   ]
 }

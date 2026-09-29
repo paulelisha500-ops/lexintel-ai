@@ -7,3 +7,4 @@ dist/
 data/
 *.log
 .claude/scheduled_tasks.lock
+dist-space/

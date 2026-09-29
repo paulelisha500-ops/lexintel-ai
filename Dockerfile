@@ -1,9 +1,9 @@
-# All-in-one image for a Hugging Face Docker Space (docker-compose.yml is the
-# local setup). One container runs everything: nginx on 7860 serves the built
+# All-in-one image: the whole platform in one container, for a single server or
+# a Hugging Face Docker Space (docker-compose.yml is the multi-container setup). One container runs everything: nginx on 7860 serves the built
 # frontend and proxies /api to the API, and Postgres, MongoDB, Redis and Ollama
 # run beside it on 127.0.0.1. Elasticsearch, Neo4j and the Celery worker are
 # switched off; the app falls back to its built-in search, relationship view
-# and in-process jobs. See deploy/huggingface/start.sh.
+# and in-process jobs. See deploy/docker/start.sh.
 
 # --- Frontend: static build, same-origin API ---
 FROM node:22-bookworm-slim AS web
@@ -51,13 +51,13 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Spaces run the container as uid 1000.
 RUN useradd -m -u 1000 user
 COPY --chown=user backend/ /app/backend/
-COPY --chown=user deploy/huggingface/ /app/deploy/
+COPY --chown=user deploy/docker/ /app/deploy/
 COPY --from=web --chown=user /web/dist /app/static
 RUN chmod +x /app/deploy/start.sh
 
 USER user
 ENV HOME=/home/user \
-    ENVIRONMENT=demo \
+    ENVIRONMENT=production \
     CORS_ORIGINS=* \
     LLM_PROVIDER=ollama \
     OLLAMA_BASE_URL=http://127.0.0.1:11434 \

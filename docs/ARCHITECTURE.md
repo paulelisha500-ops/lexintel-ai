@@ -91,11 +91,11 @@ responding. So:
 Admins see every model's state and the machine's free memory, and can load or
 unload the writing model, under System status. The first draft after an idle
 period pays a cold load (1-3 minutes on this hardware); later ones take
-20-60 seconds, so "Load now" before a demo is worth it.
+20-60 seconds, so "Load now" before a busy session is worth it.
 
 A script or one-off `docker compose exec` that needs embeddings should set
 `EMBEDDINGS_URL=http://localhost:8005/api/v1/internal/embed` so it borrows the
-API's model instead of loading a second copy -- `scripts/seed_demo.py` and
+API's model instead of loading a second copy -- `scripts/seed_data.py` and
 `tests/_env.py` already do. On a small machine, a stray second copy is enough
 to exhaust Docker's VM.
 

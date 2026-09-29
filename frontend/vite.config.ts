@@ -12,6 +12,9 @@ export default defineConfig({
     watch: process.env.VITE_WATCH_POLLING === "true" ? { usePolling: true, interval: 400 } : undefined,
   },
   preview: { port: 3005 },
+  // The AI worker loads ONNX Runtime with dynamic imports, which needs module workers.
+  worker: { format: "es" },
+  optimizeDeps: { exclude: ["@huggingface/transformers"] },
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {

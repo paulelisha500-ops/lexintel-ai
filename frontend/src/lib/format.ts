@@ -58,8 +58,10 @@ export function courtWallClockToIso(d: Date): string {
   const asIfUtc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(),
                            d.getHours(), d.getMinutes(), d.getSeconds());
   // How far ahead of UTC the court's clock runs at that moment (+4h; the UAE
-  // keeps no daylight saving, but this asks rather than assumes).
-  const offsetMs = inCourtZone(new Date(asIfUtc)).getTime() - asIfUtc;
+  // keeps no daylight saving, but this asks rather than assumes). Both sides
+  // are read as UTC fields, so the reader's own time zone plays no part.
+  const c = inCourtZone(new Date(asIfUtc));
+  const offsetMs = Date.UTC(c.getFullYear(), c.getMonth(), c.getDate(), c.getHours(), c.getMinutes(), c.getSeconds()) - asIfUtc;
   return new Date(asIfUtc - offsetMs).toISOString();
 }
 

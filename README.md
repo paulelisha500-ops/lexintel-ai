@@ -1,192 +1,219 @@
-# LexIntel
+<div align="center">
 
-**Live demo:** [huggingface.co/spaces/Elisha622/lexintel-ai](https://huggingface.co/spaces/Elisha622/lexintel-ai) ·
-Source: [GitHub](https://github.com/paulelisha500-ops/lexintel-ai) · Mirror: [Hugging Face](https://huggingface.co/Elisha622/lexintel-ai)
+# ⚖️ LexIntel
 
-Court case management and legal-intelligence platform for the UAE — decision
-support for courts, prosecutors and lawyers. Bilingual (Arabic / English,
-full right-to-left), built on the official **UAE Design System**
-(`@aegov/design-system`), with every AI feature backed by a non-AI fallback.
+**Court case management and legal intelligence for the United Arab Emirates**
 
-**Humans decide.** LexIntel never issues verdicts and never scores emotion or
-"deception". Only a judge can enter a ruling. See
-[`docs/DESIGN_DECISIONS.md`](docs/DESIGN_DECISIONS.md).
+Bilingual Arabic / English · Built on the UAE Design System · AI that explains itself and never decides
 
-## What it does (all modules are real, end to end)
+[![Open in Hugging Face Spaces](https://img.shields.io/badge/Open%20the%20app-Hugging%20Face%20Space-FFD21E?logo=huggingface&logoColor=000)](https://huggingface.co/spaces/Elisha622/lexintel-ai)
+[![Source on GitHub](https://img.shields.io/badge/Source-GitHub-181717?logo=github)](https://github.com/paulelisha500-ops/lexintel-ai)
+![Arabic and English](https://img.shields.io/badge/Languages-Arabic%20%7C%20English-00843D)
+![AI runs locally](https://img.shields.io/badge/AI-runs%20locally-4B5563)
 
-| Module | What you can do |
+</div>
+
+---
+
+LexIntel brings the whole life of a case into one workspace for courts, prosecutors and lawyers: the citizen's complaint, the case file and its evidence, the hearing calendar, the courtroom stand, legal research grounded in the law library, and finally the judge's ruling. Every screen works in Arabic and English with full right-to-left support, on the official UAE Design System (`@aegov/design-system`).
+
+**Humans decide.** LexIntel organises, reads, transcribes and cites; it never issues a verdict, never scores emotion, credibility or "deception", and only a judge can enter a ruling — a rule enforced in the code, not just the interface. See [Design decisions](docs/DESIGN_DECISIONS.md).
+
+For a guided overview of the platform, read the [Introduction](docs/INTRODUCTION.md).
+
+## Contents
+
+- [Try it](#try-it)
+- [Capabilities](#capabilities)
+- [AI that explains itself](#ai-that-explains-itself)
+- [Deployment options](#deployment-options)
+- [Running with Docker](#running-with-docker)
+- [Architecture](#architecture)
+- [Security and privacy](#security-and-privacy)
+- [Testing](#testing)
+- [Project structure](#project-structure)
+- [Documentation](#documentation)
+
+## Try it
+
+**[Open LexIntel on Hugging Face](https://huggingface.co/spaces/Elisha622/lexintel-ai)** — no installation. The complete application, including its API, database and AI models, runs inside your browser; your data stays on your device.
+
+| Username | Role | Password |
+|---|---|---|
+| `admin` | System administrator | `LexIntel@2026` |
+| `judge`, `judge2` | Judge | `LexIntel@2026` |
+| `clerk` | Court clerk | `LexIntel@2026` |
+| `officer` | Case officer | `LexIntel@2026` |
+| `prosecutor` | Prosecutor | `LexIntel@2026` |
+
+Each browser starts with its own private copy of these accounts and the initial case files. Change the password under *Profile*. Citizens use *File a complaint* and *Track a complaint* without an account.
+
+## Capabilities
+
+| Area | What it does |
 |---|---|
-| 1 · Complaints | Citizens file online (no account), get a **reference number + tracking code**, and track status. Staff triage with AI suggestions (category, department, duplicates, priority), then **open a case** in one click. |
-| 2 · Case intelligence | Extract people, places, dates and amounts from any text; dated events go onto the case **timeline**. A **case brief** quotes the key sentences of the file, the topics it discusses and the laws it cites, with an optional checked draft. Compare two documents/statements for **factual differences** (never credibility). |
-| 3 · Evidence | Upload PDFs, scans, photos, text, audio/video. SHA-256 fingerprint on upload, Arabic + English **OCR**, transcription of recordings, **chain-of-custody log**, integrity re-check, review/flag. |
-| 4 · Prioritisation | Transparent weighted score from factual signals, with a factor-by-factor explanation; re-scored nightly as cases age. |
-| 5 · Similar & related cases | Similar wording across case files (Elasticsearch); people who appear in other cases and cases citing the same law (Neo4j graph). |
-| 6 · Legal research | Answers only from the **Law Library** (official PDFs you upload), with article citations and an in-force date filter. Keyword + semantic retrieval. |
-| 7 · Scheduling | Hearing calendar (day/week) that **blocks courtroom and judge double-booking**. |
-| Courtroom stand | One person at a time: clerk confirms identity, **real microphone/camera recording**, **live local speech-to-text** (Arabic/English), transcript review, full-quality re-transcription. |
-| 9 · Signatures | Signature presence + similarity check against a reference (document authentication only). |
-| 10 · Analytics | Live dashboard and analytics with table views for every chart. |
-| 11 · Citizen portal | Public site, complaint filing and tracking. |
-| 12 · Explainable AI | Every AI output shows its reasons, sources and confidence. Drafts are checked sentence by sentence against their sources, with unmatched sentences marked. All AI runs on this server. |
-| Security | JWT sign-in, 5 roles, lockout after 5 failed attempts, tokens revoked on password change, Emirates IDs stored only as keyed hashes, **audit log** of every action, admin user management. |
+| **Complaints & citizen portal** | Citizens file online without an account and receive a reference number and tracking code. Staff see an AI triage suggestion — category, department, possible duplicates, priority — with its reasoning, then confirm it or open a case in one step. The classifier learns from every staff decision. |
+| **Case workspace** | Parties, hearings, evidence, timeline, statements, research notes, related cases, ruling and a full activity trail in one file. |
+| **Case intelligence** | Dates, amounts, people, places and case references are extracted from any document; dated events populate the timeline. A **case brief** quotes the key sentences of the file, the offence topics it discusses and the laws it cites. Two documents or statements can be compared for **factual differences** — never for credibility. |
+| **Evidence** | PDFs, scans, photos, text, audio and video. SHA-256 fingerprint on upload, Arabic + English OCR, transcription of recordings, integrity re-check, review and flagging, and a **chain-of-custody log** of every view and download. |
+| **Signatures** | Detects whether a signature is present on a scanned document and measures its similarity to a reference — document authentication only, flagged for a clerk when in doubt. |
+| **Prioritisation** | A transparent weighted score from factual signals (public safety, statutory deadline, vulnerable victim, missing evidence, case age), shown factor by factor. A workload recommendation, never a view on the merits. |
+| **Similar & related cases** | Cases similar in meaning or wording; people who appear in other cases; cases whose research cites the same articles. |
+| **Scheduling** | Day and week court calendar that blocks courtroom and judge double-booking before it happens. |
+| **Courtroom stand** | One person at a time: the clerk confirms identity, microphone and camera recording starts, a live transcript appears as the person speaks (Arabic or English), and the full recording is transcribed again at full quality after they step down. |
+| **Legal research** | Answers come only from the Law Library, with article citations, key passages and an in-force date filter; repealed law is excluded before anything is drafted. |
+| **Law Library** | Upload official law PDFs or text; articles marked "Article (N)" / "المادة (N)" are indexed individually. |
+| **Analytics** | Live dashboards for cases, complaints, hearings, evidence and rulings, each chart with an accessible table view. |
+| **Administration** | Staff accounts and roles, the audit log, and live status of every service and AI model. |
 
-## Live demo (Hugging Face Space)
+## AI that explains itself
 
-The whole platform runs in a single container on a free Hugging Face Docker
-Space, built from the root [`Dockerfile`](Dockerfile): nginx serves the
-frontend and proxies the API, with Postgres, MongoDB, Redis and the local
-writing model (Ollama, qwen2.5 1.5B) running beside it. Elasticsearch, Neo4j
-and the Celery worker are off there; the app uses its fallbacks. Startup
-lives in [`deploy/huggingface/start.sh`](deploy/huggingface/start.sh).
+All AI in LexIntel runs locally — on the court's own server, or on the user's own device in the browser edition. No text, document or recording is sent to an outside AI service, and no API key is needed.
 
-Sign in with any demo account below and the password `LexIntel@2026`
-(set the `DEMO_PASSWORD` Space secret to change it). Everything in the demo
-is fictional, is shared by every visitor and is reset whenever the Space
-restarts. It is CPU-only, so AI drafts take a while, and it sleeps after 48
-hours without visitors (the first visit then wakes it in a minute or two).
+| Model | Purpose |
+|---|---|
+| `paraphrase-multilingual-MiniLM-L12-v2` | Meaning-matching across Arabic and English: complaint classification, duplicate detection, similar cases, extractive summaries, key passages, the grounding check |
+| Qwen2.5 Instruct (small) | Short drafts of research answers and case briefs |
+| Whisper | Speech-to-text at the courtroom stand and for audio evidence |
+| Tesseract (Arabic + English) | OCR of scanned documents |
 
-## Run it
+Every output is built to be checked by a person:
 
-Requirements: Docker Desktop. Everything else runs in containers.
+- **Summaries quote**; they never paraphrase. Each key sentence is taken verbatim from its document.
+- **Drafts are verified sentence by sentence** against their numbered sources. Citations are computed by the check, not trusted from the model; sentences that match no source, and figures the sources don't contain, are visibly marked; drafts that mostly fail the check are withheld.
+- **Offence mentions are topics, not charges** — each is shown with the sentence that mentions it.
+- **Every feature has a non-AI fallback.** If a model is unavailable, research still shows the in-force articles and key passages, briefs still show the quoted facts, triage falls back to bilingual keywords, and clerks can type or correct any transcript.
+
+## Deployment options
+
+| Edition | Where it runs | Best for |
+|---|---|---|
+| **Browser edition** — [Hugging Face Space](https://huggingface.co/spaces/Elisha622/lexintel-ai) | The API ([`frontend/src/server`](frontend/src/server)), database (IndexedDB) and AI models (ONNX Runtime Web, WebGPU or WebAssembly) all run in the browser. Hosted as static files. | Evaluation, training and single-user work, with no server to operate |
+| **Server edition** — Docker Compose | FastAPI backend, PostgreSQL, MongoDB, Redis + Celery, Elasticsearch, Neo4j, Ollama, faster-whisper | A court or firm running LexIntel for many users on its own infrastructure |
+| **Single container** — root [`Dockerfile`](Dockerfile) | The server edition in one image (nginx, API, PostgreSQL, MongoDB, Redis, Ollama) | One server or a Hugging Face Docker Space |
+
+The browser edition implements the same API contract as the Python backend — same endpoints, roles, validation, error messages (in Arabic and English) and streaming — so the frontend is identical in all three. It is published with [`deploy/huggingface-space/deploy.sh`](deploy/huggingface-space/deploy.sh).
+
+## Running with Docker
+
+Requirements: Docker Desktop (8 GB of memory or more recommended).
 
 ```bash
 docker compose up -d --build
 ```
 
-- App: **http://localhost:3005**
-- API: **http://localhost:8005** (docs at `/docs`)
+- Application: **http://localhost:3005**
+- API: **http://localhost:8005** (interactive documentation at `/docs`)
 
-First run only — create the demo accounts and demo records:
+On first run, create the staff accounts and initial case files:
 
 ```bash
-docker compose exec backend python -m scripts.seed_demo --password "LexIntel@2026"
+docker compose exec backend python -m scripts.seed_data --password "LexIntel@2026"
 ```
 
-This creates the demo accounts, five clearly-marked demo cases with documents
-(read by the same pipeline as uploaded evidence, so briefs, key sentences,
-topics, cited laws and similar cases have material), three demo complaints,
-and three short sample law texts so the Law Library and Legal research have
-something to answer from. The sample texts were written for the demo and say
-so on their first line -- they are not UAE legislation.
+This creates the accounts listed above, five case files with documents (processed by the same pipeline as uploaded evidence), three citizen complaints and three short sample law texts. Run it again with `--refresh` after an update to add anything newer and move the initial hearings back to today.
 
-Re-run it with `--refresh` after an update: that refreshes the demo records,
-adds anything a newer version of the seed introduced, and moves the demo
-hearings back to today, so the Courtroom stand always has a session to open.
-
-| Username | Role |
-|---|---|
-| `admin` | Administrator (users, audit log, system status) |
-| `judge.demo`, `judge2.demo` | Judge (the only role that can enter a ruling) |
-| `clerk.demo` | Court clerk (complaints, scheduling, courtroom stand) |
-| `officer.demo` | Case officer (cases, evidence, triage) |
-| `prosecutor.demo` | Prosecutor (evidence, research) |
-
-All demo accounts use the password you pass to `seed_demo`. Change them before any real use.
-
-### Legal research needs the Law Library
-
-Official UAE statute portals block automated downloads, and this project does
-not circumvent that. Download the official PDF yourself (for example from
-uaelegislation.gov.ae) and upload it under **Law library**. Articles marked
-"Article (N)" / "المادة (N)" are indexed individually.
-
-The seed ships three short sample laws so the feature can be tried
-immediately. They are demo text, not real statute: every title starts with
-"Demo:" so an article cited in a research answer can't be mistaken for a real
-one. Delete them once you have uploaded the real texts.
-
-### AI runs on this server
-
-No cloud AI and no API key. Small task models handle classification,
-duplicates, similar cases, summaries and offence mentions; a local writing
-model (qwen2.5 1.5B via Ollama) drafts research answers and case briefs,
-streamed as it writes and checked sentence by sentence against the sources.
-Download the writing model once (about 1 GB):
+Download the local writing model once (about 1 GB):
 
 ```bash
 docker compose exec ollama ollama pull qwen2.5:1.5b-instruct
 ```
 
-Without it, everything else still works: research shows the in-force articles
-and key passages, and case briefs show the quoted key facts. See
-`docs/ARCHITECTURE.md` → *AI on this server*.
+### Law Library
 
-## Services and what happens if one is down
+Official UAE statute portals do not permit automated downloads, and LexIntel does not circumvent that. Download the official PDF (for example from [uaelegislation.gov.ae](https://uaelegislation.gov.ae)) and upload it under **Law library**. The three bundled law texts are sample text for trying the research feature and are labelled as such — they are not official legislation. Remove them once the official texts are uploaded.
 
-| Service | Used for | If it's down |
+### Services and fallbacks
+
+| Service | Used for | If it is unavailable |
 |---|---|---|
-| PostgreSQL | Cases, complaints, hearings, people, rulings, audit | API returns a clear 503 and retries |
-| MongoDB | Courtroom sessions, statements, evidence text | Courtroom pages show "temporarily unavailable"; text falls back to Postgres |
-| Redis + Celery worker | Background jobs, nightly re-scoring and re-indexing | Jobs run inside the API process |
+| PostgreSQL | Cases, complaints, hearings, people, rulings, audit log | The API answers with a clear 503 and keeps retrying |
+| MongoDB | Courtroom sessions, statements, evidence text | Courtroom pages report the outage; evidence text falls back to PostgreSQL |
+| Redis + Celery | Background jobs, nightly re-scoring and re-indexing | Jobs run inside the API process |
 | Elasticsearch | Full-text search, duplicates, similar cases, law keyword search | Database search and word-overlap matching |
-| Neo4j | Relationship graph | Related cases computed from Postgres |
-| faster-whisper | Speech-to-text | Clerk types/corrects the transcript |
-| Ollama (writing model) | Research drafts, case briefs | Articles + key passages; quoted key facts |
+| Neo4j | Relationship graph | Related cases computed from PostgreSQL |
+| faster-whisper | Speech-to-text | Clerks type or correct the transcript |
+| Ollama | Research drafts and case briefs | Articles with key passages; quoted key facts |
 
-Live status of all of these: **System status** (admin).
+Live status of every service and model is under **System status** (administrators).
 
-### Memory
+The full stack idles at about 2 GB of memory; the writing model adds about 0.9 GB while loaded and refuses to start when memory is short, returning the quoted sources instead of a draft. On an 8 GB machine, give Docker more memory in `%UserProfile%\.wslconfig` (for example `memory=5GB`).
 
-The full stack idles at about 2 GB, and the writing model adds ~0.9 GB while
-loaded. Each service has a memory cap, and the AI models refuse to start when
-free memory is short -- you get the quoted sources instead of a draft, which
-is far better than the machine seizing up. System status shows the free
-memory and what it currently allows. On an 8 GB machine, stop other Docker
-projects while using LexIntel, or give Docker more memory in
-`%UserProfile%\.wslconfig` (for example `memory=5GB`).
+## Architecture
 
-The API does not watch for code changes. After editing backend code:
-
-```bash
-docker compose restart backend
+```
+                 ┌───────────────────────────────────────────────┐
+  Browser        │  React + TypeScript · UAE Design System       │
+                 │  Arabic / English · RTL · accessible charts   │
+                 └───────────────┬───────────────────────────────┘
+                                 │  REST + server-sent events
+          ┌──────────────────────┴───────────────────────┐
+          │                                              │
+  Server edition                                 Browser edition
+  FastAPI · LangGraph agents                     Same API in the page
+  PostgreSQL · MongoDB · Redis/Celery            IndexedDB
+  Elasticsearch · Neo4j                          Web Worker with ONNX Runtime Web
+  Ollama · faster-whisper · Tesseract            (WebGPU / WebAssembly), tesseract.js
 ```
 
-For hot reload while developing, add the dev override:
-`docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend`.
+See [Architecture](docs/ARCHITECTURE.md) for the request flow, the background jobs and how each AI component degrades.
 
-## Tests
+## Security and privacy
+
+- Token-based sign-in with five roles: judge, prosecutor, clerk, case officer and administrator; no self-registration.
+- Account lockout after five failed attempts; sessions revoked when a password changes.
+- **Only a judge can enter a ruling**, and it is always attributed to the signed-in judge.
+- Emirates ID numbers are stored only as keyed hashes (plus the last four digits for display).
+- Complaint tracking codes are stored only as keyed hashes.
+- An append-only audit log records every significant action, including every view and download of evidence.
+- AI runs locally; in the browser edition, records and files never leave the user's device.
+
+Before production use, review the deployment against UAE Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data and your court's own data-protection requirements.
+
+## Testing
 
 ```bash
 docker compose exec backend python -m tests.run_all
 ```
 
-Uses separate `lexintel_test` databases, never your data. Includes a security
-suite (roles, ruling boundary, lockout, token revocation), a full flow suite
-run with every optional service switched off (proves the fallbacks), a suite
-for the AI task models (classification, duplicates, offence mentions,
-summaries, the grounding check and the model slots), and a live Neo4j test.
-The runner unloads the writing model first, because holding it costs ~1.1 GB.
-
-Drafting by the local writing model is slow on CPU, so it runs only when asked:
+The suites use separate `lexintel_test` databases and cover security (roles, the ruling boundary, lockout, token revocation), full end-to-end flows with every optional service switched off (proving each fallback), the AI task models (classification, duplicates, offence mentions, summaries, the grounding check) and the Neo4j graph. Drafting by the writing model is slow on CPU, so its tests run only on request:
 
 ```bash
 docker compose exec backend python -m tests.run_all --live-ai
 ```
 
-## Project layout
+## Project structure
 
 ```
-backend/
-  app/api/            auth_routes.py + routers/ (complaints, cases, evidence,
-                      scheduling, courtroom, research, insights)
-  app/agents/         LangGraph agents: intake triage, case intelligence,
-                      legal research, prioritisation, courtroom session
-  app/db/             Postgres repositories + migrations, Mongo, Elasticsearch,
-                      Neo4j -- each with a reachability probe
-  app/ingestion/      OCR + signature checks, Law Library parsing/indexing
-  app/stt/            local speech-to-text (faster-whisper)
-  app/tasks.py        background jobs (Celery, with in-process fallback)
-  scripts/            seed_demo.py, seed_admin.py
-  tests/              run_all.py + suites
-frontend/
-  src/components/     UAE Design System components, layouts, charts
-  src/pages/public/   landing, file/track complaint, sign in
-  src/pages/app/      dashboard, cases (+ case workspace), complaints,
-                      hearings, courtroom stand, research, library,
-                      analytics, admin
-  public/images/      photos (Unsplash licence, see CREDITS.md)
-docs/                 architecture, design decisions, law sources
+backend/                    Server edition (Python 3.11, FastAPI)
+  app/api/                  Authentication and routers: complaints, cases, evidence,
+                            scheduling, courtroom, research, insights
+  app/agents/               LangGraph agents: intake triage, case intelligence,
+                            legal research, prioritisation, courtroom session
+  app/ai/                   Task models: embeddings, classifier, summaries, offences,
+                            grounding check, drafting
+  app/db/                   PostgreSQL, MongoDB, Elasticsearch and Neo4j layers
+  app/ingestion/            OCR, signature checks, Law Library parsing
+  app/stt/                  Speech-to-text (faster-whisper)
+  scripts/                  seed_data.py, seed_admin.py
+  tests/                    Test runner and suites
+frontend/                   React + TypeScript
+  src/pages/                Public site, staff workspace, administration
+  src/components/           UAE Design System components, AI displays, charts
+  src/server/               Browser edition: the API, storage, jobs and AI worker
+deploy/
+  docker/                   Single-container start-up and nginx configuration
+  huggingface-space/        Browser-edition build and publish script
+docs/                       Introduction, architecture, design decisions, law sources
 ```
 
-LexIntel is an independent decision-support platform, not an official UAE
-government service, and does not replace licensed legal counsel.
+## Documentation
+
+- [Introduction](docs/INTRODUCTION.md) — what LexIntel is, who it serves and how a case moves through it
+- [Architecture](docs/ARCHITECTURE.md) — components, request flow, background jobs and fallbacks
+- [Design decisions](docs/DESIGN_DECISIONS.md) — the principles behind human-only decisions and explainable AI
+- [UAE law sources](docs/UAE_LAW_SOURCES.md) — where official legislation comes from and how to load it
+
+---
+
+LexIntel is an independent decision-support platform. It is not an official UAE government service and does not replace licensed legal counsel. Photographs are used under the Unsplash licence ([credits](frontend/public/images/CREDITS.md)).

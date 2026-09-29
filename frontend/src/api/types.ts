@@ -310,8 +310,10 @@ export interface ResearchResult {
 
 /** Phase updates while the local model drafts (server-sent `status` events). */
 export interface DraftStatus {
-  phase: "retrieving" | "waiting" | "writing" | "checking";
+  phase: "retrieving" | "waiting" | "loading" | "writing" | "checking";
   ahead?: number;
+  /** Download progress of the writing model (0-100), while `phase` is "loading". */
+  progress?: number;
   model?: string;
 }
 
@@ -373,6 +375,8 @@ export interface AIModelStatus {
   error?: string | null;
   enabled?: boolean;
   in_use?: boolean;
+  loading?: boolean;
+  progress?: number | null;
   idle_seconds?: number | null;
   unloads_after_seconds?: number;
   load_seconds?: number | null;

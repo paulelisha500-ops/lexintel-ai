@@ -33,8 +33,8 @@ export default function Home() {
     },
     {
       icon: <Mic />, title: t("Courtroom stand", "منصة الشهادة"),
-      body: t("One person at a time: the clerk confirms identity, the statement is recorded and transcribed on this server — audio never leaves it.",
-        "شخص واحد في كل مرة: يؤكد الكاتب الهوية، وتُسجَّل الإفادة وتُفرَّغ نصياً على الخادم نفسه دون إرسال الصوت إلى الخارج."),
+      body: t("One person at a time: the clerk confirms identity, and the statement is recorded and transcribed by a local speech model — audio is never sent to an outside service.",
+        "شخص واحد في كل مرة: يؤكد الكاتب الهوية، وتُسجَّل الإفادة وتُفرَّغ نصياً بنموذج كلام محلي دون إرسال الصوت إلى أي خدمة خارجية."),
     },
     {
       icon: <BookOpenCheck />, title: t("Cited legal research", "بحث قانوني موثّق"),
@@ -92,7 +92,7 @@ export default function Home() {
             { icon: <Gavel />, title: t("No AI verdicts", "لا أحكام آلية"), body: t("Only a judge can enter a ruling.", "لا يُدخل الحكم إلا القاضي.") },
             { icon: <ShieldCheck />, title: t("Chain of custody", "سلسلة الحيازة"), body: t("Every view and download is logged.", "كل اطلاع وتنزيل مسجَّل.") },
             { icon: <Languages />, title: t("Arabic & English", "العربية والإنجليزية"), body: t("Full right-to-left interface.", "واجهة كاملة من اليمين إلى اليسار.") },
-            { icon: <Lock />, title: t("Stays on your servers", "تبقى على خوادمك"), body: t("Speech-to-text and search run locally.", "التفريغ الصوتي والبحث يعملان محلياً.") },
+            { icon: <Lock />, title: t("Private by design", "الخصوصية أولاً"), body: t("Every AI model runs locally. No outside AI service.", "كل نماذج الذكاء الاصطناعي تعمل محلياً دون أي خدمة خارجية.") },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600 [&_svg]:size-5">
