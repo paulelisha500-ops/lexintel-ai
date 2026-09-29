@@ -1,5 +1,6 @@
 # LexIntel
 
+**Live demo:** [huggingface.co/spaces/Elisha622/lexintel-ai](https://huggingface.co/spaces/Elisha622/lexintel-ai) ·
 Source: [GitHub](https://github.com/paulelisha500-ops/lexintel-ai) · Mirror: [Hugging Face](https://huggingface.co/Elisha622/lexintel-ai)
 
 Court case management and legal-intelligence platform for the UAE — decision
@@ -28,6 +29,21 @@ full right-to-left), built on the official **UAE Design System**
 | 11 · Citizen portal | Public site, complaint filing and tracking. |
 | 12 · Explainable AI | Every AI output shows its reasons, sources and confidence. Drafts are checked sentence by sentence against their sources, with unmatched sentences marked. All AI runs on this server. |
 | Security | JWT sign-in, 5 roles, lockout after 5 failed attempts, tokens revoked on password change, Emirates IDs stored only as keyed hashes, **audit log** of every action, admin user management. |
+
+## Live demo (Hugging Face Space)
+
+The whole platform runs in a single container on a free Hugging Face Docker
+Space, built from the root [`Dockerfile`](Dockerfile): nginx serves the
+frontend and proxies the API, with Postgres, MongoDB, Redis and the local
+writing model (Ollama, qwen2.5 1.5B) running beside it. Elasticsearch, Neo4j
+and the Celery worker are off there; the app uses its fallbacks. Startup
+lives in [`deploy/huggingface/start.sh`](deploy/huggingface/start.sh).
+
+Sign in with any demo account below and the password `LexIntel@2026`
+(set the `DEMO_PASSWORD` Space secret to change it). Everything in the demo
+is fictional, is shared by every visitor and is reset whenever the Space
+restarts. It is CPU-only, so AI drafts take a while, and it sleeps after 48
+hours without visitors (the first visit then wakes it in a minute or two).
 
 ## Run it
 
