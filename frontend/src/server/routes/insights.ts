@@ -107,7 +107,6 @@ async function storageEstimate() {
 route("GET", "/admin/system", async (req) => {
   requireRole(req.user(), ["admin"]);
   const emb = modelState("embeddings"), writer = modelState("writer"), speech = modelState("speech");
-  const gpu = !!(navigator as any).gpu;
   const articles = db().laws.filter((l) => l.status === "indexed").reduce((a, l) => a + (l.article_count ?? 0), 0);
   const slot = (s: ReturnType<typeof modelState>, unloadAfter: number | null) => ({
     available: !s.error, loaded: s.loaded, loading: s.loading, progress: s.progress, in_use: s.inUse > 0, error: s.error,
@@ -125,7 +124,7 @@ route("GET", "/admin/system", async (req) => {
       { key: "embeddings", name: "paraphrase-multilingual-MiniLM-L12-v2", runtime: "ONNX Runtime Web · WebAssembly", ...slot(emb, null) },
       { key: "classifier", name: "Nearest-neighbour complaint classifier", runtime: "uses the embeddings model", available: !emb.error, loaded: emb.loaded, loading: emb.loading,
         examples: Object.values(SEED_EXAMPLES).reduce((a, v) => a + v.length, 0), learned_examples: db().complaints.filter((c) => c.category_confirmed).length },
-      { key: "writer", name: "Qwen2.5 0.5B Instruct", runtime: `ONNX Runtime Web · ${gpu ? "WebGPU" : "WebAssembly"}`, ...slot(writer, 600), queue: writerQueueLength() },
+      { key: "writer", name: "Qwen2.5 0.5B Instruct", runtime: "ONNX Runtime Web · WebAssembly", ...slot(writer, 600), queue: writerQueueLength() },
       { key: "speech_to_text", name: "Whisper base", runtime: "ONNX Runtime Web · WebAssembly", ...slot(speech, 600) },
       { key: "ocr", name: "Tesseract (Arabic + English)", runtime: "tesseract.js · WebAssembly", available: !ocrState.error, loaded: ocrState.loaded ? true : null, error: ocrState.error },
     ],

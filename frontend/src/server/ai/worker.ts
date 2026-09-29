@@ -64,15 +64,6 @@ function looping(text: string): boolean {
   return false;
 }
 
-async function webgpuAvailable(): Promise<boolean> {
-  try {
-    const gpu = (navigator as any).gpu;
-    return !!gpu && !!(await gpu.requestAdapter());
-  } catch {
-    return false;
-  }
-}
-
 function progress(model: string) {
   return (p: any) => {
     if (p?.status === "progress" && typeof p.progress === "number") {
@@ -130,15 +121,13 @@ function load(model: keyof typeof MODELS): Promise<any> {
     } else if (model === "speech") {
       p = pipeline("automatic-speech-recognition", MODELS.speech, { dtype: "q8", progress_callback: cb });
     } else {
-      // 4-bit with fp16 on the GPU; 8-bit integer on the CPU, where it runs faster than 4-bit.
-      p = webgpuAvailable().then(async (gpu) => {
-        await prefetch(model, MODELS.writer, gpu ? "onnx/model_q4f16.onnx" : "onnx/model_quantized.onnx");
-        return pipeline("text-generation", MODELS.writer, {
-          dtype: gpu ? "q4f16" : "q8",
-          device: gpu ? "webgpu" : "wasm",
-          progress_callback: cb,
-        });
-      });
+      // 8-bit integer weights on the CPU (WebAssembly). The 4-bit fp16 GPU build is faster,
+      // but on common integrated GPUs its half-precision maths overflows and the model
+      // writes nonsense; a draft that is slower and correct is the only useful kind.
+      p = (async () => {
+        await prefetch(model, MODELS.writer, "onnx/model_quantized.onnx");
+        return pipeline("text-generation", MODELS.writer, { dtype: "q8", device: "wasm", progress_callback: cb });
+      })();
     }
     loaded[model] = p.then(
       (pipe) => {
@@ -209,8 +198,7 @@ async function handle(req: Request): Promise<unknown> {
         await generator(req.messages, {
           max_new_tokens: req.maxTokens,
           do_sample: false,
-          repetition_penalty: 1.15,
-          no_repeat_ngram_size: 4,
+          repetition_penalty: 1.1,
           stopping_criteria: stopper,
           streamer,
         });

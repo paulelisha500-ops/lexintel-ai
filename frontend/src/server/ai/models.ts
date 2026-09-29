@@ -237,5 +237,5 @@ export function generate(messages: { role: string; content: string }[], maxToken
 export class WriterBusy extends Error {}
 
 export function describeWriter(): string {
-  return `Qwen2.5 0.5B Instruct · ${(navigator as any).gpu ? "WebGPU" : "WebAssembly"}`;
+  return "Qwen2.5 0.5B Instruct · WebAssembly";
 }
