@@ -64,7 +64,7 @@ async function* answer(prepared: Prepared): AsyncGenerator<[string, unknown]> {
   }).join("\n\n");
   const user = arabic ? `نص القانون:\n${lawText}\n\nالسؤال: ${p.question}\nالإجابة:` : `Law text:\n${lawText}\n\nQuestion: ${p.question}\nAnswer:`;
   const messages = [{ role: "system", content: arabic ? SYSTEM_AR : SYSTEM_EN }, { role: "user", content: user }];
-  for await (const [kind, payload] of streamGroundedDraft(messages, docs.map((d) => d.text), p.language, 450, 0.34)) {
+  for await (const [kind, payload] of streamGroundedDraft(messages, docs.map((d) => d.text), p.language, 200, 0.34)) {
     if (kind !== "draft") { yield [kind, payload]; continue; }
     const r: any = payload;
     if (r.status !== "ok") {
@@ -75,6 +75,7 @@ async function* answer(prepared: Prepared): AsyncGenerator<[string, unknown]> {
     let reason = "Draft written by a small local model and checked against the sources: sentences that match no source are marked, "
       + "and so are figures the sources don't contain. It can still join two points that belong apart, so read the cited articles before relying on it.";
     if (r.unsupported) reason = `${r.unsupported} sentence(s) could not be matched to any source and are marked. ${reason}`;
+    if (r.removed) reason = `${r.removed} sentence(s) that matched no source were removed. ${reason}`;
     yield ["final", { ...p, answer: r.text, answer_status: "ok", grounding: r.grounding, model: r.model, needs_human_review: true, review_reason: reason }];
   }
 }

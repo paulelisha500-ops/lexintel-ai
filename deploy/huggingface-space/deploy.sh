@@ -14,7 +14,7 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 echo "==> building the self-contained frontend"
-(cd "$ROOT/frontend" && npm ci --no-audit --no-fund && npx tsc -b \
+(cd "$ROOT/frontend" && { [ -x node_modules/.bin/vite ] || npm ci --no-audit --no-fund; } && npx tsc -b \
   && VITE_IN_BROWSER_SERVER=true npx vite build --outDir "$WORK/dist" --emptyOutDir)
 
 echo "==> preparing the Space repository"

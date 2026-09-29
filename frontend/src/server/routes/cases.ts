@@ -386,14 +386,17 @@ route("POST", "/cases/{case_id}/brief/stream", async (req) => {
     const numbered = sources.map((t: string, i: number) => `[${i + 1}] ${t}`).join("\n");
     const header = `${c.case_number} — ${c.title}`;
     const messages = [{ role: "system", content: lang === "ar" ? BRIEF_SYSTEM_AR : BRIEF_SYSTEM_EN },
-                      { role: "user", content: lang === "ar" ? `القضية: ${header}\n\nالملاحظات:\n${numbered}` : `Case: ${header}\n\nNotes:\n${numbered}` }];
+                      { role: "user", content: lang === "ar"
+                        ? `القضية: ${header}\n\nالملاحظات:\n${numbered}\n\nاكتب الملخص الآن في ثلاث إلى ست جمل.\nالملخص:`
+                        : `Case: ${header}\n\nNotes:\n${numbered}\n\nWrite the brief now in three to six plain sentences.\nBrief:` }];
     try {
-      for await (const [kind, payload] of streamGroundedDraft(messages, sources, lang, 380)) {
+      for await (const [kind, payload] of streamGroundedDraft(messages, sources, lang, 220)) {
         if (kind !== "draft") { yield [kind, payload]; continue; }
         const p: any = payload;
         if (p.status === "ok") {
+          const removedNote = p.removed ? `${p.removed} sentence(s) that matched no note were removed. ` : "";
           yield ["final", { status: "ok", draft: p.text, grounding: p.grounding, model: p.model, unsupported: p.unsupported,
-            reason: "Draft by a small local model, checked against the key facts above. Sentences that match no note are marked, and so are figures the notes don't contain. It can still join two facts that belong apart, so read it against the notes below." }];
+            reason: removedNote + "Draft by a small local model, checked against the key facts above. Sentences that match no note are marked, and so are figures the notes don't contain. It can still join two facts that belong apart, so read it against the notes below." }];
         } else {
           yield ["final", { status: p.status, draft: "", reason: `${p.reason} The quoted key facts above are unaffected.` }];
         }

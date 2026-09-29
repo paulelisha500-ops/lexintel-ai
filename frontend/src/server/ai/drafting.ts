@@ -11,7 +11,7 @@ import { arabicRatio, hasForeignScript, splitSentences, stripMarkdown, wordOverl
 export type DraftEvent =
   | ["status", { phase: string; ahead?: number; model?: string; progress?: number }]
   | ["token", { text: string }]
-  | ["draft", { status: "ok"; text: string; grounding: Grounding; unsupported: number; model: string } | { status: "ai_unavailable" | "ai_busy" | "discarded"; reason: string }];
+  | ["draft", { status: "ok"; text: string; grounding: Grounding; unsupported: number; removed?: number; model: string } | { status: "ai_unavailable" | "ai_busy" | "discarded"; reason: string }];
 
 export function languageProblem(text: string, language: string): string | null {
   if (hasForeignScript(text)) return "The draft drifted into another language, so it was withheld.";
@@ -108,10 +108,22 @@ export async function* streamGroundedDraft(messages: { role: string; content: st
     return;
   }
   const checked = await groundingCheck(text, sources);
+  let result = checked;
+  let removed = 0;
   if (checked.supported_ratio < minSupported) {
-    yield ["draft", { status: "discarded", reason: "The draft did not match the sources closely enough, so it was withheld." }];
-    return;
+    // The small browser model tends to follow a correct sentence with filler of its own.
+    // Every sentence has been checked, so keep the ones the sources support and drop the rest;
+    // withhold the draft only when none of it matches.
+    const kept = checked.sentences.filter((s) => s.support === "supported" || s.support === "partial");
+    if (!kept.some((s) => s.support === "supported")) {
+      yield ["draft", { status: "discarded", reason: "The draft did not match the sources closely enough, so it was withheld." }];
+      return;
+    }
+    removed = checked.sentences.filter((s) => s.support !== "heading").length - kept.length;
+    const counted = kept.length;
+    result = { ...checked, sentences: kept,
+               supported_ratio: counted ? Math.round((kept.filter((s) => s.support === "supported").length / counted) * 100) / 100 : 0 };
   }
-  const unsupported = checked.sentences.filter((s) => s.support === "unsupported").length;
-  yield ["draft", { status: "ok", text: renderGrounded(checked), grounding: checked, unsupported, model: describeWriter() }];
+  const unsupported = result.sentences.filter((s) => s.support === "unsupported").length;
+  yield ["draft", { status: "ok", text: renderGrounded(result), grounding: result, unsupported, removed, model: describeWriter() }];
 }
