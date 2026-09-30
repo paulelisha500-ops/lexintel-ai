@@ -22,7 +22,7 @@ tags:
 
 LexIntel brings citizen complaints, case files, evidence, hearings, the courtroom stand and cited legal research into one workspace for courts, prosecutors and lawyers. Humans decide: the platform never issues verdicts, never scores emotion or credibility, and only a judge can enter a ruling.
 
-Source code: [github.com/paulelisha500-ops/lexintel-ai](https://github.com/paulelisha500-ops/lexintel-ai)
+Source code: [github.com/paulelisha500-ops/lexintel-ai](https://github.com/paulelisha500-ops/lexintel-ai) · Also on [GitHub Pages](https://paulelisha500-ops.github.io/lexintel-ai/)
 
 ## How this Space runs
 
@@ -30,13 +30,13 @@ This Space runs the complete application inside your browser, with no server beh
 
 - **The API** — every endpoint of the LexIntel backend runs in the page, with the same rules, roles, validation and audit log.
 - **The database** — records and uploaded files are stored in your browser (IndexedDB). They stay on your device and survive reloads. Each browser has its own private copy.
-- **The AI models** — run on your device through ONNX Runtime Web (WebGPU where available, WebAssembly otherwise). Model files download from the Hugging Face Hub on first use and are then cached. No text, document or recording is sent to an AI service.
+- **The AI models** — run on your device through ONNX Runtime Web, using several CPU cores. Model files download from the Hugging Face Hub on first use and are then cached. No text, document or recording is sent to an AI service.
 
 | Model | Used for | Download |
 |---|---|---|
 | `paraphrase-multilingual-MiniLM-L12-v2` | Meaning-matching in Arabic and English: complaint triage, duplicates, similar cases, summaries, key passages, grounding checks | ~120 MB, at start |
-| `Qwen2.5-0.5B-Instruct` | Short drafts of research answers and case briefs, checked sentence by sentence against the sources | ~480 MB (GPU) / ~510 MB (CPU), on first draft |
-| `whisper-base` | Live and full transcripts at the courtroom stand; audio evidence | ~80 MB, when a session opens |
+| `whisper-tiny` | The live transcript at the courtroom stand, with each line attributed to its speaker | ~40 MB, when a session opens |
+| `whisper-base` | Full-quality transcription of the whole recording after step-down; audio evidence | ~80 MB, on first use |
 | Tesseract (Arabic + English) | OCR of scanned documents and PDFs | ~15 MB, on first scan |
 
 ## Signing in

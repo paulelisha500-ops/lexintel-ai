@@ -6,6 +6,7 @@
 
 Bilingual Arabic / English · Built on the UAE Design System · AI that explains itself and never decides
 
+[![Open on GitHub Pages](https://img.shields.io/badge/Open%20the%20app-GitHub%20Pages-222?logo=github)](https://paulelisha500-ops.github.io/lexintel-ai/)
 [![Open in Hugging Face Spaces](https://img.shields.io/badge/Open%20the%20app-Hugging%20Face%20Space-FFD21E?logo=huggingface&logoColor=000)](https://huggingface.co/spaces/Elisha622/lexintel-ai)
 [![Source on GitHub](https://img.shields.io/badge/Source-GitHub-181717?logo=github)](https://github.com/paulelisha500-ops/lexintel-ai)
 ![Arabic and English](https://img.shields.io/badge/Languages-Arabic%20%7C%20English-00843D)
@@ -36,7 +37,7 @@ For a guided overview of the platform, read the [Introduction](docs/INTRODUCTION
 
 ## Try it
 
-**[Open LexIntel on Hugging Face](https://huggingface.co/spaces/Elisha622/lexintel-ai)** — no installation. The complete application, including its API, database and AI models, runs inside your browser; your data stays on your device.
+Open LexIntel with no installation, on **[GitHub Pages](https://paulelisha500-ops.github.io/lexintel-ai/)** or **[Hugging Face](https://huggingface.co/spaces/Elisha622/lexintel-ai)**. The complete application — its API, database and AI models — runs inside your browser, and your data stays on your device.
 
 | Username | Role | Password |
 |---|---|---|
@@ -60,7 +61,7 @@ Each browser starts with its own private copy of these accounts and the initial 
 | **Prioritisation** | A transparent weighted score from factual signals (public safety, statutory deadline, vulnerable victim, missing evidence, case age), shown factor by factor. A workload recommendation, never a view on the merits. |
 | **Similar & related cases** | Cases similar in meaning or wording; people who appear in other cases; cases whose research cites the same articles. |
 | **Scheduling** | Day and week court calendar that blocks courtroom and judge double-booking before it happens. |
-| **Courtroom stand** | One person at a time: the clerk confirms identity, microphone and camera recording starts, a live transcript appears as the person speaks (Arabic or English), and the full recording is transcribed again at full quality after they step down. |
+| **Courtroom stand** | One person at a time: the clerk confirms identity, microphone and camera recording starts, and a live transcript appears as the person speaks (Arabic or English). The clerk marks who is speaking — the person at the stand, the judge, the prosecutor, defence counsel, an interpreter or the clerk (keys 1–6) — so every line of the transcript is saved with its speaker and time. After step-down the full recording is transcribed again at full quality. |
 | **Legal research** | Answers come only from the Law Library, with article citations, key passages and an in-force date filter; repealed law is excluded before anything is drafted. |
 | **Law Library** | Upload official law PDFs or text; articles marked "Article (N)" / "المادة (N)" are indexed individually. |
 | **Analytics** | Live dashboards for cases, complaints, hearings, evidence and rulings, each chart with an accessible table view. |
@@ -73,8 +74,8 @@ All AI in LexIntel runs locally — on the court's own server, or on the user's 
 | Model | Purpose |
 |---|---|
 | `paraphrase-multilingual-MiniLM-L12-v2` | Meaning-matching across Arabic and English: complaint classification, duplicate detection, similar cases, extractive summaries, key passages, the grounding check |
-| Qwen2.5 Instruct (small) | Short drafts of research answers and case briefs |
-| Whisper | Speech-to-text at the courtroom stand and for audio evidence |
+| Qwen2.5 Instruct (small) | Short drafts of research answers and case briefs (server edition) |
+| Whisper (tiny for the live transcript, base for full recordings) | Speech-to-text at the courtroom stand and for audio evidence |
 | Tesseract (Arabic + English) | OCR of scanned documents |
 
 Every output is built to be checked by a person:
@@ -88,11 +89,11 @@ Every output is built to be checked by a person:
 
 | Edition | Where it runs | Best for |
 |---|---|---|
-| **Browser edition** — [Hugging Face Space](https://huggingface.co/spaces/Elisha622/lexintel-ai) | The API ([`frontend/src/server`](frontend/src/server)), database (IndexedDB) and AI models (ONNX Runtime Web, WebGPU or WebAssembly) all run in the browser. Hosted as static files. | Evaluation, training and single-user work, with no server to operate |
+| **Browser edition** — [GitHub Pages](https://paulelisha500-ops.github.io/lexintel-ai/) · [Hugging Face](https://huggingface.co/spaces/Elisha622/lexintel-ai) | The API ([`frontend/src/server`](frontend/src/server)), database (IndexedDB) and AI models (ONNX Runtime Web, multi-core WebAssembly) all run in the browser. Hosted as static files. Model-written drafts are off in this edition; quoted facts, key passages and cited articles are unaffected. | Evaluation, training and single-user work, with no server to operate |
 | **Server edition** — Docker Compose | FastAPI backend, PostgreSQL, MongoDB, Redis + Celery, Elasticsearch, Neo4j, Ollama, faster-whisper | A court or firm running LexIntel for many users on its own infrastructure |
 | **Single container** — root [`Dockerfile`](Dockerfile) | The server edition in one image (nginx, API, PostgreSQL, MongoDB, Redis, Ollama) | One server or a Hugging Face Docker Space |
 
-The browser edition implements the same API contract as the Python backend — same endpoints, roles, validation, error messages (in Arabic and English) and streaming — so the frontend is identical in all three. It is published with [`deploy/huggingface-space/deploy.sh`](deploy/huggingface-space/deploy.sh).
+The browser edition implements the same API contract as the Python backend — same endpoints, roles, validation, error messages (in Arabic and English) and streaming — so the frontend is identical in all three. GitHub Pages is published automatically by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main`; Hugging Face with [`deploy/huggingface-space/deploy.sh`](deploy/huggingface-space/deploy.sh).
 
 ## Running with Docker
 

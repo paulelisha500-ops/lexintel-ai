@@ -49,7 +49,7 @@ LexIntel brings that material into one case file, reads it in Arabic and English
 
 **6. Hearings are scheduled.** The court calendar places hearings by courtroom and judge and catches double bookings before they happen.
 
-**7. The hearing is held.** At the courtroom stand, the clerk calls one person at a time and confirms their identity. Their statement is recorded, and a live transcript appears as they speak. When they step down, the full recording is transcribed again at full quality, summarised by quotation, and added to the case file, where it can be reviewed and corrected.
+**7. The hearing is held.** At the courtroom stand, the clerk calls one person at a time and confirms their identity. Their statement is recorded, and a live transcript appears as they speak. When the judge asks a question or counsel intervenes, the clerk marks who is speaking, so the transcript is saved as a dialogue in which every line carries its speaker and time. When the person steps down, the full recording is transcribed again at full quality, summarised by quotation, and added to the case file, where it can be reviewed and corrected.
 
 **8. The judge rules.** The judge reviews the complete file and enters the ruling, noting any research that informed it. The case is closed, and the whole history — who did what, and when — remains in the audit log.
 
@@ -58,7 +58,7 @@ LexIntel brings that material into one case file, reads it in Arabic and English
 LexIntel runs in two ways from the same codebase and the same user interface.
 
 - **Server edition.** A court or firm runs the full platform on its own infrastructure with Docker: a FastAPI backend with PostgreSQL, MongoDB, Redis, Elasticsearch and Neo4j, and local AI models served on the same machines. This is the edition for shared, multi-user operation.
-- **Browser edition.** The complete application — its API, its database and its AI models — runs inside a web browser, and is hosted as a set of static files on Hugging Face. There is nothing to install or operate, and each user's records stay on their own device. It suits evaluation, training and single-user work.
+- **Browser edition.** The complete application — its API, its database and its AI models — runs inside a web browser, and is hosted as a set of static files on GitHub Pages and Hugging Face. There is nothing to install or operate, and each user's records stay on their own device. It suits evaluation, training and single-user work. Model-written drafts are available only in the server edition.
 
 ## Responsible use
 
