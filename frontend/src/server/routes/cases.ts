@@ -15,6 +15,7 @@ import {
   partiesOf, personView, statementsForCase, statementView,
 } from "../views";
 import { addParty, createPersonFrom } from "./scheduling";
+import { DRAFTS_ENABLED } from "../../api/client";
 
 // ---------------------------------------------------------------------------
 // Docket
@@ -378,6 +379,10 @@ route("POST", "/cases/{case_id}/brief/stream", async (req) => {
   audit(user, "case.brief_drafted", "case", c.id, { language: lang });
   async function* events(): AsyncGenerator<[string, unknown]> {
     yield ["sources", brief];
+    if (!DRAFTS_ENABLED) {
+      yield ["final", { status: "ai_unavailable", draft: "", reason: "Written drafts are switched off on this server." }];
+      return;
+    }
     const sources = brief.sections.map((s: any) => `${s.label}: ${s.sentences.join(" ")}`).slice(0, 10);
     if (brief.sections.reduce((a: number, s: any) => a + s.sentences.length, 0) < 3) {
       yield ["final", { status: "no_sources", draft: "", reason: "The file has too little text for a useful draft yet -- the key facts above are the whole file." }];

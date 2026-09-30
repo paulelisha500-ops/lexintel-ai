@@ -31,6 +31,25 @@ const Router = IN_BROWSER_SERVER ? HashRouter : BrowserRouter;
 
 if (import.meta.env.DEV) void import("./devtools");
 
+/**
+ * Browser edition: a small service worker makes the page cross-origin isolated, which lets
+ * the in-browser AI use every CPU core instead of one (see public/coi-serviceworker.js).
+ * The first visit reloads once, as soon as the worker is in control.
+ */
+if (IN_BROWSER_SERVER && "serviceWorker" in navigator && window.isSecureContext && !window.crossOriginIsolated) {
+  navigator.serviceWorker.register(new URL("coi-serviceworker.js", document.baseURI), { scope: "./" }).then((reg) => {
+    const reloadOnce = () => {
+      if (sessionStorage.getItem("lexintel.coi-reloaded")) return;
+      sessionStorage.setItem("lexintel.coi-reloaded", "1");
+      location.reload();
+    };
+    if (navigator.serviceWorker.controller) reloadOnce();
+    else reg.addEventListener("updatefound", () => reg.installing?.addEventListener("statechange", (e) => {
+      if ((e.target as ServiceWorker).state === "activated") reloadOnce();
+    }));
+  }).catch((e) => console.warn("cross-origin isolation unavailable; AI runs on one core", e));
+}
+
 const ThemedToaster: React.FC = () => {
   const { theme, dir } = usePrefs();
   return <Toaster theme={theme} dir={dir} position={dir === "rtl" ? "bottom-left" : "bottom-right"} richColors closeButton />;

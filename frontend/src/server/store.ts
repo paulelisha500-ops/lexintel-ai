@@ -59,7 +59,11 @@ export interface StatementRow {
   role: string; identity_verification: string; started_at: string | null; ended_at: string | null;
   recording_file_id: string | null; recording_content_type: string | null; recording_size_bytes: number | null; recording_sha256: string | null;
   transcript: string | null; transcript_confidence: number | null; transcript_source: string | null; transcript_status: string;
-  transcript_language: string | null; live_segments: { seq: number; text: string; language: string | null; received_at: string }[];
+  transcript_language: string | null; live_segments: { seq: number; text: string; language: string | null; received_at: string; speaker?: string | null; offset_seconds?: number | null }[];
+  /** Who spoke, in order of first appearance (the person at the stand first). */
+  speakers?: string[];
+  /** The full recording's own transcription, kept apart when the transcript is a multi-speaker dialogue. */
+  recording_transcript?: string | null;
   extracted_entities: any[]; summary: any | null; offence_mentions: any[]; sequence_number: number;
 }
 export interface SessionRow {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FileText, PenLine, Quote, RefreshCw, Square } from "lucide-react";
-import { ApiError, streamEvents } from "../../../api/client";
+import { ApiError, DRAFTS_ENABLED, streamEvents } from "../../../api/client";
 import { useCaseBrief } from "../../../api/hooks";
 import type { BriefDraft, DraftStatus } from "../../../api/types";
 import { DraftStatusLine, GroundedText, GroundingLegend, LegalReferences, LocalAIBadge, stripMarkdown } from "../../../components/ai/AI";
@@ -82,7 +82,7 @@ export const CaseBriefCard: React.FC<{ caseId: string }> = ({ caseId }) => {
           <Tooltip content={t("Refresh the quoted facts", "تحديث الوقائع المقتبسة")}>
             <Button variant="ghost" size="xs" icon={<RefreshCw className="size-3.5" />} onClick={() => brief.refetch()} aria-label={t("Refresh", "تحديث")} />
           </Tooltip>
-          {writing ? (
+          {!DRAFTS_ENABLED ? null : writing ? (
             <Button variant="outline" size="sm" icon={<Square className="size-3.5" />} onClick={stop}>{t("Stop", "إيقاف")}</Button>
           ) : (
             <Tooltip content={enoughToDraft ? t("A short neutral summary by the local model, checked against the key facts.", "ملخص محايد قصير يكتبه النموذج المحلي ويُطابق مع الوقائع الرئيسية.")

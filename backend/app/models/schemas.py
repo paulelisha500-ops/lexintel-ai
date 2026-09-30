@@ -217,6 +217,8 @@ class TranscriptSegment(BaseModel):
     text: str
     language: Optional[str] = None
     received_at: datetime = Field(default_factory=_utcnow)
+    speaker: Optional[str] = None          # who was speaking (the clerk marks it on the stand)
+    offset_seconds: Optional[int] = None   # seconds from the start of the recording
 
 
 class StatementRecord(BaseModel):
@@ -240,6 +242,8 @@ class StatementRecord(BaseModel):
     recording_content_type: Optional[str] = None
     recording_size_bytes: Optional[int] = None
     recording_sha256: Optional[str] = None
+    speakers: list[str] = Field(default_factory=list)   # who spoke, in order of first appearance
+    recording_transcript: Optional[str] = None          # the recording's own transcription, kept apart for dialogues
     transcript: Optional[str] = None
     transcript_confidence: Optional[float] = None
     transcript_source: Optional[str] = None       # live | final | edited

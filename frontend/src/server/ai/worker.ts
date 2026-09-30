@@ -14,6 +14,12 @@ import { MODELS } from "./modelIds";
 
 env.allowLocalModels = false;
 
+// With cross-origin isolation (see public/coi-serviceworker.js) WebAssembly can use several
+// cores; without it, one. Leave a core free for the page itself.
+const cores = (self as any).navigator?.hardwareConcurrency ?? 2;
+const onnxWasm = (env as any).backends?.onnx?.wasm;
+if (onnxWasm) onnxWasm.numThreads = (self as any).crossOriginIsolated ? Math.max(1, Math.min(4, cores - 1)) : 1;
+
 /**
  * Model files are cached by the browser (Cache API) so later visits start
  * quickly. Very large files can exceed what a browser is willing to store;
@@ -42,7 +48,7 @@ env.customCache = {
 
 type Request =
   | { id: number; op: "embed"; texts: string[] }
-  | { id: number; op: "transcribe"; audio: Float32Array; language?: string | null }
+  | { id: number; op: "transcribe"; audio: Float32Array; language?: string | null; live?: boolean }
   | { id: number; op: "generate"; messages: { role: string; content: string }[]; maxTokens: number }
   | { id: number; op: "load"; model: keyof typeof MODELS }
   | { id: number; op: "unload"; model: keyof typeof MODELS }
@@ -122,8 +128,8 @@ function load(model: keyof typeof MODELS): Promise<any> {
     let p: Promise<any>;
     if (model === "embeddings") {
       p = pipeline("feature-extraction", MODELS.embeddings, { dtype: "q8", progress_callback: cb });
-    } else if (model === "speech") {
-      p = pipeline("automatic-speech-recognition", MODELS.speech, { dtype: "q8", progress_callback: cb });
+    } else if (model === "speech" || model === "speechLive") {
+      p = pipeline("automatic-speech-recognition", MODELS[model], { dtype: "q8", progress_callback: cb });
     } else {
       // 8-bit integer weights on the CPU (WebAssembly). The 4-bit fp16 GPU build is faster,
       // but on common integrated GPUs its half-precision maths overflows and the model
@@ -175,7 +181,7 @@ async function handle(req: Request): Promise<unknown> {
       return out;
     }
     case "transcribe": {
-      const asr = await load("speech");
+      const asr = await load(req.live ? "speechLive" : "speech");
       const result = await asr(req.audio, {
         language: req.language === "ar" ? "arabic" : req.language === "en" ? "english" : undefined,
         task: "transcribe",

@@ -140,8 +140,10 @@ const RUNNERS: Record<Job[0], (id: string) => Promise<void>> = {
         if (blob) {
           const { text } = await transcribe(blob, st.transcript_language);
           if (text.trim()) {
-            transcript = text.trim();
-            Object.assign(st, { transcript, transcript_source: "final" });
+            // A multi-speaker dialogue keeps its "who said what"; the recording's own
+            // transcription (one voice-agnostic block) is stored beside it.
+            if ((st.speakers?.length ?? 0) > 1) st.recording_transcript = text.trim();
+            else { transcript = text.trim(); Object.assign(st, { transcript, transcript_source: "final" }); }
           }
         }
         st.transcript_status = transcript ? "done" : "none";

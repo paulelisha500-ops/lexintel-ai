@@ -7,6 +7,13 @@
 /** True in the self-contained build: the API runs inside the browser (src/server) instead of on a server. */
 export const IN_BROWSER_SERVER = import.meta.env.VITE_IN_BROWSER_SERVER === "true";
 
+/**
+ * Model-written drafts (research answers, case briefs). Off in the browser edition: the only
+ * writing model small enough for a browser is too weak to pass the grounding check and too
+ * heavy for many laptops. The quoted facts, key passages and cited articles don't need it.
+ */
+export const DRAFTS_ENABLED = !IN_BROWSER_SERVER;
+
 export const API_BASE = IN_BROWSER_SERVER ? "" : (import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8005/api/v1";
 
 const inBrowserServer = IN_BROWSER_SERVER ? import("../server") : null;

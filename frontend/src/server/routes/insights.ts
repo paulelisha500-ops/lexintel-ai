@@ -8,6 +8,7 @@ import { route } from "../router";
 import { db } from "../store";
 import { ilike, OPEN_STATUSES } from "../views";
 import { sttStatus } from "./courtroom";
+import { DRAFTS_ENABLED } from "../../api/client";
 
 const UAE = 4 * 3600_000;
 const uaeDay = (iso: string) => new Date(Date.parse(iso) + UAE).toISOString().slice(0, 10);
@@ -117,14 +118,14 @@ route("GET", "/admin/system", async (req) => {
     services: [
       { name: "database", available: true, latency_ms: 0, error: null, detail: "IndexedDB" },
       { name: "background_jobs", available: true, error: null, detail: "Web Worker" },
-      { name: "llm", available: !writer.error, error: writer.error, loaded: writer.loaded, model: writer.name, detail: describeWriter() },
+      ...(!DRAFTS_ENABLED ? [] : [{ name: "llm", available: !writer.error, error: writer.error, loaded: writer.loaded, model: writer.name, detail: describeWriter() }]),
       sttStatus(),
     ],
     ai_models: [
       { key: "embeddings", name: "paraphrase-multilingual-MiniLM-L12-v2", runtime: "ONNX Runtime Web · WebAssembly", ...slot(emb, null) },
       { key: "classifier", name: "Nearest-neighbour complaint classifier", runtime: "uses the embeddings model", available: !emb.error, loaded: emb.loaded, loading: emb.loading,
         examples: Object.values(SEED_EXAMPLES).reduce((a, v) => a + v.length, 0), learned_examples: db().complaints.filter((c) => c.category_confirmed).length },
-      { key: "writer", name: "Qwen2.5 0.5B Instruct", runtime: "ONNX Runtime Web · WebAssembly", ...slot(writer, 600), queue: writerQueueLength() },
+      ...(!DRAFTS_ENABLED ? [] : [{ key: "writer" as const, name: "Qwen2.5 0.5B Instruct", runtime: "ONNX Runtime Web · WebAssembly", ...slot(writer, 600), queue: writerQueueLength() }]),
       { key: "speech_to_text", name: "Whisper base", runtime: "ONNX Runtime Web · WebAssembly", ...slot(speech, 600) },
       { key: "ocr", name: "Tesseract (Arabic + English)", runtime: "tesseract.js · WebAssembly", available: !ocrState.error, loaded: ocrState.loaded ? true : null, error: ocrState.error },
     ],

@@ -9,6 +9,7 @@ import { dispatch } from "../jobs";
 import { isoDate, oneOf, Raw, route, Sse, Status } from "../router";
 import { db, files, save, type LawRow } from "../store";
 import { JURISDICTIONS } from "../views";
+import { DRAFTS_ENABLED } from "../../api/client";
 import { uploadedFile } from "./evidence";
 
 const SYSTEM_EN = "You answer questions about UAE law for lawyers, prosecutors and judges. Answer ONLY from the law text the user gives you. "
@@ -54,7 +55,7 @@ async function prepare(question: string, asOf: string | null, jurisdiction: stri
 
 async function* answer(prepared: Prepared): AsyncGenerator<[string, unknown]> {
   const p = prepared.public;
-  if (p.answer_status !== "sources_only") { yield ["final", p]; return; }
+  if (p.answer_status !== "sources_only" || !DRAFTS_ENABLED) { yield ["final", p]; return; }
   const arabic = p.language === "ar";
   const docs = prepared.docs.slice(0, 4);
   const lawText = docs.map((d, i) => {

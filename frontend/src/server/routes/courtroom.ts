@@ -5,7 +5,7 @@
  * Nothing here analyses expression, tone or affect.
  */
 import { AUDIO_VIDEO_EXTENSIONS, extensionOf, sha256Hex } from "../ai/documents";
-import { modelState, ModelUnavailable, transcribe, warm } from "../ai/models";
+import { modelState, ModelUnavailable, transcribeMany, warm } from "../ai/models";
 import { audit, COURTROOM_STAFF, HttpError, nowISO, requireRole, STAFF, uuid } from "../core";
 import { dispatch } from "../jobs";
 import { oneOf, Raw, route, str } from "../router";
@@ -15,8 +15,28 @@ import { uploadedFile } from "./evidence";
 import { addParty, createPersonFrom } from "./scheduling";
 
 export function sttStatus() {
-  const s = modelState("speech");
-  return { name: "speech_to_text", available: !s.error, loaded: s.loaded, model: "Whisper base", error: s.error };
+  const live = modelState("speechLive"), full = modelState("speech");
+  return { name: "speech_to_text", available: !live.error, loaded: live.loaded, model: "Whisper tiny (live) · Whisper base (full recording)", error: live.error ?? full.error };
+}
+
+/**
+ * The live transcript as text. With one speaker (the person at the stand) it is plain prose;
+ * when others spoke too (the judge's questions, counsel, an interpreter) it is a dialogue,
+ * one line per turn: "Speaker: words".
+ */
+export function composeTranscript(statement: StatementRow): string {
+  const segs = [...statement.live_segments].sort((a, b) => a.seq - b.seq).filter((s) => s.text.trim());
+  const who = (s: (typeof segs)[number]) => s.speaker || statement.person_name || "Speaker";
+  const speakers = [...new Set(segs.map(who))];
+  statement.speakers = speakers;
+  if (speakers.length <= 1) return segs.map((s) => s.text.trim()).join(" ").trim();
+  const turns: { speaker: string; text: string[] }[] = [];
+  for (const s of segs) {
+    const last = turns[turns.length - 1];
+    if (last && last.speaker === who(s)) last.text.push(s.text.trim());
+    else turns.push({ speaker: who(s), text: [s.text.trim()] });
+  }
+  return turns.map((t) => `${t.speaker}: ${t.text.join(" ")}`).join("\n");
 }
 
 function sessionView(session: SessionRow) {
@@ -60,7 +80,7 @@ route("POST", "/courtroom/hearings/{hearing_id}/session", (req) => {
     save();
     audit(user, "courtroom.session_opened", "case", hearing.case_id, { hearing_id: hearing.id, session_id: session.id });
   }
-  warm("speech").catch(() => undefined); // be ready by the time someone speaks
+  warm("speechLive").catch(() => undefined); // be ready by the time someone speaks
   return sessionView(session);
 });
 
@@ -110,21 +130,25 @@ route("POST", "/courtroom/statements/{statement_id}/live-chunk", async (req) => 
   const seq = parseInt(String(req.form?.get("seq") ?? ""), 10);
   if (Number.isNaN(seq) || seq < 0) throw new HttpError(422, "seq: Field required");
   if (statement.ended_at) return { seq, text: "", ignored: true };
-  const audio = req.form?.get("audio");
-  if (!(audio instanceof Blob) || !audio.size) throw new HttpError(422, "audio: Field required");
+  // Several consecutive chunks may come at once (the client catches up in one pass).
+  const audio = (req.form?.getAll("audio") ?? []).filter((a): a is File => a instanceof Blob && a.size > 0);
+  if (!audio.length) throw new HttpError(422, "audio: Field required");
   const language = String(req.form?.get("language") ?? "") || null;
+  const speaker = String(req.form?.get("speaker") ?? "").trim().slice(0, 120) || statement.person_name;
+  const offsetRaw = Number(req.form?.get("offset_seconds"));
+  const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? Math.round(offsetRaw) : null;
   let text = "";
   try {
-    text = (await transcribe(audio, language, true)).text.trim();
+    text = (await transcribeMany(audio, language, true, true)).text.trim();
   } catch (e) {
     return { seq, text: "", stt_available: !(e instanceof ModelUnavailable) || !modelState("speech").error, error: (e as Error).name };
   }
   if (text) {
     const current = statementOr404(statement.id);
-    current.live_segments.push({ seq, text, language, received_at: nowISO() });
+    current.live_segments.push({ seq, text, language, received_at: nowISO(), speaker, offset_seconds: offset });
     save();
   }
-  return { seq, text, language, stt_available: true };
+  return { seq, text, language, speaker, stt_available: true };
 });
 
 route("POST", "/courtroom/sessions/{session_id}/step-down", (req) => {
@@ -137,7 +161,7 @@ route("POST", "/courtroom/sessions/{session_id}/step-down", (req) => {
     save();
     throw new HttpError(409, "The active statement record was missing; the stand has been cleared.");
   }
-  const live = [...statement.live_segments].sort((a, b) => a.seq - b.seq).map((s) => s.text).join(" ").trim();
+  const live = composeTranscript(statement);
   statement.ended_at = nowISO();
   const edited = str(req.body, "transcript", { max: 500_000 })?.trim();
   if (edited && edited !== live) Object.assign(statement, { transcript: edited, transcript_source: "edited" });

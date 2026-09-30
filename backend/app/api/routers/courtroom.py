@@ -153,6 +153,8 @@ def call_to_stand(session_id: str, req: CallToStandRequest, request: Request, db
 
 @router.post("/statements/{statement_id}/live-chunk")
 async def live_chunk(statement_id: str, seq: int = Form(..., ge=0, le=100000), language: Optional[str] = Form(default=None),
+                     speaker: Optional[str] = Form(default=None, max_length=120),
+                     offset_seconds: Optional[int] = Form(default=None, ge=0),
                      audio: UploadFile = File(...), mongo=Depends(get_mongo),
                      _user: UserAccount = Depends(require_role(*COURTROOM_STAFF))):
     """A few seconds of microphone audio -> transcribed text appended to the live transcript."""
@@ -174,12 +176,30 @@ async def live_chunk(statement_id: str, seq: int = Form(..., ge=0, le=100000), l
     text = result["text"].strip()
     if text:
         repo.append_segment(statement_id, {"seq": seq, "text": text, "language": result["language"],
-                                           "received_at": datetime.utcnow().isoformat()})
+                                           "received_at": datetime.utcnow().isoformat(),
+                                           "speaker": (speaker or "").strip() or statement.person_name,
+                                           "offset_seconds": offset_seconds})
     return {"seq": seq, "text": text, "language": result["language"], "stt_available": True}
 
 
 class StepDownRequest(BaseModel):
     transcript: Optional[str] = Field(default=None, max_length=500_000)
+
+
+def compose_transcript(statement: StatementRecord) -> tuple[str, list[str]]:
+    """The live transcript: plain prose for one speaker, "Speaker: words" lines when others spoke too."""
+    segments = [s for s in sorted(statement.live_segments, key=lambda s: s.seq) if s.text.strip()]
+    who = lambda s: s.speaker or statement.person_name or "Speaker"  # noqa: E731
+    speakers = list(dict.fromkeys(who(s) for s in segments))
+    if len(speakers) <= 1:
+        return " ".join(s.text.strip() for s in segments).strip(), speakers
+    turns: list[list] = []
+    for s in segments:
+        if turns and turns[-1][0] == who(s):
+            turns[-1][1].append(s.text.strip())
+        else:
+            turns.append([who(s), [s.text.strip()]])
+    return "\n".join(f"{name}: {' '.join(words)}" for name, words in turns), speakers
 
 
 @router.post("/sessions/{session_id}/step-down")
@@ -195,7 +215,7 @@ def step_down(session_id: str, req: StepDownRequest, request: Request, db: Sessi
         session_repo.upsert(session)
         raise HTTPException(409, "The active statement record was missing; the stand has been cleared.")
 
-    live_text = " ".join(seg.text for seg in sorted(statement.live_segments, key=lambda s: s.seq)).strip()
+    live_text, statement.speakers = compose_transcript(statement)
     statement.ended_at = datetime.utcnow()
     if req.transcript is not None and req.transcript.strip() and req.transcript.strip() != live_text:
         statement.transcript, statement.transcript_source = req.transcript.strip(), "edited"

@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Camera, CameraOff, CheckCircle2, DoorClosed, Mic, MicOff, Square, UserRoundPlus, Video } from "lucide-react";
-import { api, ApiError, uploadWithProgress } from "../../../api/client";
+import { api, ApiError, IN_BROWSER_SERVER, uploadWithProgress } from "../../../api/client";
 import { useCaseParties, useInvalidate } from "../../../api/hooks";
 import type { CourtroomState, Hearing, Statement } from "../../../api/types";
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, Input, ProgressBar, Select, Skeleton, Textarea, Toggle } from "../../../components/ui/core";
@@ -25,6 +25,35 @@ import { usePrefs } from "../../../lib/prefs";
 import { StatementDrawer, TRANSCRIPT_STATUS } from "../case/StatementsTab";
 
 const CHUNK_MS = 6000;
+
+/** Who can be speaking while a statement is recorded (besides the person at the stand). */
+const OTHER_SPEAKERS = [
+  { key: "judge", en: "Judge", ar: "القاضي" },
+  { key: "prosecutor", en: "Prosecutor", ar: "النيابة" },
+  { key: "defense_counsel", en: "Defence counsel", ar: "الدفاع" },
+  { key: "interpreter", en: "Interpreter", ar: "المترجم" },
+  { key: "clerk", en: "Clerk", ar: "الكاتب" },
+] as const;
+
+type Segment = { seq: number; text: string; speaker: string };
+
+/** Consecutive segments by the same speaker, merged into turns. */
+function toTurns(segments: Segment[]): { speaker: string; text: string }[] {
+  const turns: { speaker: string; text: string }[] = [];
+  for (const s of [...segments].sort((a, b) => a.seq - b.seq)) {
+    const last = turns[turns.length - 1];
+    if (last && last.speaker === s.speaker) last.text += " " + s.text;
+    else turns.push({ speaker: s.speaker, text: s.text });
+  }
+  return turns;
+}
+
+/** The transcript as text: plain prose for one speaker, "Speaker: words" lines for a dialogue. */
+function composeTranscript(segments: Segment[]): string {
+  const turns = toTurns(segments);
+  if (new Set(turns.map((t) => t.speaker)).size <= 1) return turns.map((t) => t.text).join(" ").trim();
+  return turns.map((t) => `${t.speaker}: ${t.text}`).join("\n");
+}
 
 function pickMime(kind: "audio" | "video"): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -54,7 +83,11 @@ export default function Stand() {
   const [recording, setRecording] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [segments, setSegments] = useState<{ seq: number; text: string }[]>([]);
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [speakerKey, setSpeakerKey] = useState("stand");
+  const speakerRef = useRef("stand");
+  const cutChunkRef = useRef<(() => void) | null>(null);
+  const recordStartRef = useRef<number>(0);
   const [manualTranscript, setManualTranscript] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -62,12 +95,45 @@ export default function Stand() {
   const archiveRef = useRef<{ recorder: MediaRecorder; parts: Blob[]; mime: string } | null>(null);
   const stopChunksRef = useRef<(() => void) | null>(null);
   const chunkQueue = useRef<Promise<void>>(Promise.resolve());
+  const pendingRef = useRef<{ blob: Blob; seq: number; mime: string; speaker: string; offset: number }[]>([]);
+  const pumpingRef = useRef(false);
   const activeIdRef = useRef<string | null>(null);
 
   const active = state?.active_statement ?? null;
   activeIdRef.current = active?.id ?? null;
   const sttAvailable = state?.stt.available ?? false;
-  const liveText = segments.sort((a, b) => a.seq - b.seq).map((s) => s.text).join(" ");
+  const standName = active?.person_name ?? t("Person at the stand", "الشخص على المنصة");
+  const speakerName = useCallback((key: string) => {
+    if (key === "stand") return standName;
+    const o = OTHER_SPEAKERS.find((x) => x.key === key);
+    return o ? (lang === "ar" ? o.ar : o.en) : key;
+  }, [standName, lang]);
+  const speakerNameRef = useRef(speakerName);
+  speakerNameRef.current = speakerName;
+  const liveText = composeTranscript(segments);
+  const turns = toTurns(segments);
+
+  /** Change who is speaking. The current audio chunk is cut here, so each chunk has one speaker. */
+  const changeSpeaker = useCallback((key: string) => {
+    if (key === speakerRef.current) return;
+    speakerRef.current = key;
+    setSpeakerKey(key);
+    cutChunkRef.current?.();
+  }, []);
+
+  // Keys 1-6 switch the speaker while someone is at the stand (not while typing in a field).
+  useEffect(() => {
+    if (!active) return;
+    const keys = ["stand", ...OTHER_SPEAKERS.map((o) => o.key)];
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable) return;
+      const i = Number(e.key) - 1;
+      if (i >= 0 && i < keys.length) { e.preventDefault(); changeSpeaker(keys[i]); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, changeSpeaker]);
 
   const load = useCallback(async () => {
     try {
@@ -76,7 +142,7 @@ export default function Stand() {
       const s = await api.post<CourtroomState>(`/courtroom/hearings/${hearingId}/session`);
       setState(s);
       if (s.active_statement?.live_segments?.length) {
-        setSegments(s.active_statement.live_segments.map((x) => ({ seq: x.seq, text: x.text })));
+        setSegments(s.active_statement.live_segments.map((x) => ({ seq: x.seq, text: x.text, speaker: x.speaker || s.active_statement!.person_name || "" })));
       }
     } catch (e) {
       setLoadError(e);
@@ -126,21 +192,42 @@ export default function Stand() {
 
   useEffect(() => () => { stopMedia(); }, [stopMedia]);
 
-  const sendChunk = (blob: Blob, seq: number, mime: string) => {
-    chunkQueue.current = chunkQueue.current.then(async () => {
-      const statementId = activeIdRef.current;
-      if (!statementId || blob.size < 2000) return;
-      const form = new FormData();
-      form.append("audio", blob, `chunk-${seq}.${extFor(mime)}`);
-      form.append("seq", String(seq));
-      form.append("language", lang);
-      try {
-        const r = await api.postForm<{ text: string; stt_available?: boolean }>(`/courtroom/statements/${statementId}/live-chunk`, form, { timeoutMs: 60_000, retry: false });
-        if (r.text) setSegments((prev) => [...prev, { seq, text: r.text }]);
-      } catch {
-        /* a lost chunk only loses a few seconds of live text; the full recording is re-transcribed */
+  /**
+   * Live chunks are transcribed one request at a time. When speech arrives faster than it is
+   * transcribed, the chunks waiting from the same speaker go together in the next request
+   * (browser edition), so the live transcript catches up instead of falling further behind.
+   */
+  const pump = async () => {
+    pumpingRef.current = true;
+    try {
+      while (pendingRef.current.length) {
+        const first = pendingRef.current.shift()!;
+        const batch = [first];
+        while (IN_BROWSER_SERVER && batch.length < 5 && pendingRef.current[0]?.speaker === first.speaker) batch.push(pendingRef.current.shift()!);
+        const statementId = activeIdRef.current;
+        const audible = batch.filter((c) => c.blob.size >= 2000);
+        if (!statementId || !audible.length) continue;
+        const form = new FormData();
+        for (const c of audible) form.append("audio", c.blob, `chunk-${c.seq}.${extFor(c.mime)}`);
+        form.append("seq", String(first.seq));
+        form.append("language", lang);
+        form.append("speaker", first.speaker);
+        form.append("offset_seconds", String(Math.max(0, Math.round(first.offset))));
+        try {
+          const r = await api.postForm<{ text: string; stt_available?: boolean }>(`/courtroom/statements/${statementId}/live-chunk`, form, { timeoutMs: 120_000, retry: false });
+          if (r.text) setSegments((prev) => [...prev, { seq: first.seq, text: r.text, speaker: first.speaker }]);
+        } catch {
+          /* a lost chunk only loses a few seconds of live text; the full recording is re-transcribed */
+        }
       }
-    });
+    } finally {
+      pumpingRef.current = false;
+    }
+  };
+
+  const sendChunk = (blob: Blob, seq: number, mime: string, speaker: string, offsetSeconds: number) => {
+    pendingRef.current.push({ blob, seq, mime, speaker, offset: offsetSeconds });
+    if (!pumpingRef.current) chunkQueue.current = pump();
   };
 
   const startMedia = async () => {
@@ -186,22 +273,30 @@ export default function Stand() {
       let stopped = false;
       let seq = segments.length ? Math.max(...segments.map((s) => s.seq)) + 1 : 0;
       let current: MediaRecorder | null = null;
+      let timer = 0;
+      recordStartRef.current = Date.now();
       const cycle = () => {
         if (stopped) return;
         const rec = new MediaRecorder(audioOnly, chunkMime ? { mimeType: chunkMime } : undefined);
         const chunkParts: Blob[] = [];
+        // The chunk belongs to whoever was speaking when it started; a speaker change cuts it.
+        const speaker = speakerNameRef.current(speakerRef.current);
+        const offset = (Date.now() - recordStartRef.current) / 1000;
         rec.ondataavailable = (e) => e.data.size && chunkParts.push(e.data);
         rec.onstop = () => {
-          sendChunk(new Blob(chunkParts, { type: rec.mimeType }), seq++, rec.mimeType || "audio/webm");
+          window.clearTimeout(timer);
+          sendChunk(new Blob(chunkParts, { type: rec.mimeType }), seq++, rec.mimeType || "audio/webm", speaker, offset);
           cycle();
         };
         rec.start();
         current = rec;
-        window.setTimeout(() => rec.state === "recording" && rec.stop(), CHUNK_MS);
+        timer = window.setTimeout(() => rec.state === "recording" && rec.stop(), CHUNK_MS);
       };
       cycle();
+      cutChunkRef.current = () => { if (current && current.state === "recording") current.stop(); };
       stopChunksRef.current = () => {
         stopped = true;
+        cutChunkRef.current = null;
         if (current && current.state === "recording") current.stop();
       };
     }
@@ -212,6 +307,8 @@ export default function Stand() {
     setState(s);
     setSegments([]);
     setManualTranscript("");
+    speakerRef.current = "stand";
+    setSpeakerKey("stand");
     await startMedia();
   };
 
@@ -333,11 +430,19 @@ export default function Stand() {
           </section>
 
           {active && (
-            <Card title={t("Live transcript", "التفريغ المباشر")} subtitle={sttAvailable ? t("Updates every few seconds. You can correct it at step-down.", "يتحدّث كل بضع ثوانٍ، ويمكن تصحيحه عند الانصراف.") : undefined}>
+            <Card title={t("Live transcript", "التفريغ المباشر")} subtitle={sttAvailable ? t("Updates every few seconds. Mark who is speaking so every line is attributed; you can correct it at step-down.", "يتحدّث كل بضع ثوانٍ. حدّد المتحدث لتُنسب كل عبارة إلى قائلها، ويمكن التصحيح عند الانصراف.") : undefined}>
+              <SpeakerPicker current={speakerKey} standName={standName} onChange={changeSpeaker} />
               {sttAvailable ? (
-                <p className="min-h-24 whitespace-pre-wrap text-base leading-relaxed" dir="auto">
-                  {liveText || <span className="italic muted">{recording ? t("Listening…", "جارٍ الاستماع…") : t("Nothing yet.", "لا شيء بعد.")}</span>}
-                </p>
+                <div className="mt-4 min-h-24 space-y-3" aria-live="polite">
+                  {turns.length ? turns.map((turn, i) => (
+                    <div key={i} className="lex-fade-in">
+                      <div className={cn("text-xs font-semibold", turn.speaker === standName ? "text-primary-700" : "text-techblue-700")}>{turn.speaker}</div>
+                      <p className="whitespace-pre-wrap text-base leading-relaxed" dir="auto">{turn.text}</p>
+                    </div>
+                  )) : (
+                    <p className="italic muted">{recording ? t("Listening…", "جارٍ الاستماع…") : t("Nothing yet.", "لا شيء بعد.")}</p>
+                  )}
+                </div>
               ) : (
                 <Textarea label={t("Transcript (typed)", "التفريغ (كتابة)")} rows={8} value={manualTranscript} onChange={(e) => setManualTranscript(e.target.value)} dir="auto" />
               )}
@@ -468,5 +573,28 @@ const ReviewModal: React.FC<{ open: boolean; onClose: () => void; initial: strin
         <Button variant="danger" loading={saving} icon={<Square className="size-4" />} onClick={async () => { setSaving(true); try { await onConfirm(text); } finally { setSaving(false); } }}>{t("Stop & close statement", "إيقاف وإغلاق الإفادة")}</Button></>}>
       <Textarea label={t("Transcript", "التفريغ")} rows={12} value={text} onChange={(e) => setText(e.target.value)} dir="auto" />
     </Modal>
+  );
+};
+
+/** "Speaking now": the person at the stand or another participant (keys 1-6). */
+const SpeakerPicker: React.FC<{ current: string; standName: string; onChange: (key: string) => void }> = ({ current, standName, onChange }) => {
+  const { t, lang } = usePrefs();
+  const choices = [{ key: "stand", label: standName }, ...OTHER_SPEAKERS.map((o) => ({ key: o.key, label: lang === "ar" ? o.ar : o.en }))];
+  return (
+    <div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wide muted">{t("Speaking now", "المتحدث الآن")}</div>
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("Speaking now", "المتحدث الآن")}>
+        {choices.map((o, i) => (
+          <button key={o.key} type="button" role="radio" aria-checked={current === o.key} onClick={() => onChange(o.key)}
+            className={cn(
+              "inline-flex flex-nowrap items-center justify-start gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors duration-150",
+              current === o.key ? "border-primary-600 bg-primary-600 text-white shadow-sm" : "border-aeblack-200 hover:border-primary-400 hover:bg-primary-50",
+            )}>
+            <kbd className={cn("rounded px-1 text-[10px] font-semibold", current === o.key ? "bg-white/20" : "bg-aeblack-100 text-aeblack-600")}>{i + 1}</kbd>
+            <span className="max-w-[14rem] truncate">{o.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 };

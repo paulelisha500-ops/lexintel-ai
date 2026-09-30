@@ -323,7 +323,10 @@ def finalize_statement_job(statement_id: str) -> None:
             latest = repo.get(statement_id)
             update["transcript_language"] = result["language"]
             update["transcript_confidence"] = result["language_probability"]
-            if result["text"] and latest and latest.transcript_source != "edited":
+            if result["text"] and latest and len(latest.speakers or []) > 1:
+                # A dialogue keeps who said what; the recording's own transcription goes beside it.
+                update["recording_transcript"] = result["text"]
+            elif result["text"] and latest and latest.transcript_source != "edited":
                 update["transcript"] = result["text"]
                 update["transcript_source"] = "final"
             update["transcript_status"] = "done"

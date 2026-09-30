@@ -120,9 +120,15 @@ export const StatementDrawer: React.FC<{ statement: Statement | null; onClose: (
                 </Badge>
               )}
             </div>
-            <p className="mt-2 whitespace-pre-wrap rounded-xl bg-aeblack-50 p-4 text-sm leading-relaxed" dir="auto">
-              {statement.transcript || t("No transcript.", "لا يوجد تفريغ.")}
-            </p>
+            {statement.transcript ? <Transcript text={statement.transcript} standName={statement.person_name} /> : (
+              <p className="mt-2 rounded-xl bg-aeblack-50 p-4 text-sm muted">{t("No transcript.", "لا يوجد تفريغ.")}</p>
+            )}
+            {statement.recording_transcript && (
+              <details className="mt-3 rounded-xl border border-aeblack-100 p-3 text-sm">
+                <summary className="cursor-pointer font-medium">{t("Transcription of the full recording", "تفريغ التسجيل الكامل")}</summary>
+                <p className="mt-2 whitespace-pre-wrap leading-relaxed muted" dir="auto">{statement.recording_transcript}</p>
+              </details>
+            )}
           </div>
           {statement.extracted_entities?.length > 0 && (
             <div>
@@ -135,5 +141,27 @@ export const StatementDrawer: React.FC<{ statement: Statement | null; onClose: (
         </div>
       )}
     </Drawer>
+  );
+};
+
+/**
+ * A statement transcript. A dialogue ("Speaker: words" on every line) is shown turn by turn
+ * with who said it; plain prose is shown as it is.
+ */
+export const Transcript: React.FC<{ text: string; standName?: string | null }> = ({ text, standName }) => {
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  const turns = lines.map((l) => l.match(/^([^:\n]{2,60}):\s+(.+)$/));
+  if (lines.length < 2 || turns.some((m) => !m)) {
+    return <p className="mt-2 whitespace-pre-wrap rounded-xl bg-aeblack-50 p-4 text-sm leading-relaxed" dir="auto">{text}</p>;
+  }
+  return (
+    <div className="mt-2 space-y-3 rounded-xl bg-aeblack-50 p-4">
+      {turns.map((m, i) => (
+        <div key={i}>
+          <div className={m![1] === standName ? "text-xs font-semibold text-primary-700" : "text-xs font-semibold text-techblue-700"}>{m![1]}</div>
+          <p className="text-sm leading-relaxed" dir="auto">{m![2]}</p>
+        </div>
+      ))}
+    </div>
   );
 };

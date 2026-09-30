@@ -232,7 +232,11 @@ export interface Statement {
   transcript_source: string | null;
   transcript_status: string;
   transcript_language: string | null;
-  live_segments?: { seq: number; text: string; language: string | null }[];
+  live_segments?: { seq: number; text: string; language: string | null; speaker?: string | null; offset_seconds?: number | null }[];
+  /** Who spoke during the statement, in order of first appearance. */
+  speakers?: string[];
+  /** The full recording's own transcription, kept apart when the transcript is a dialogue. */
+  recording_transcript?: string | null;
   extracted_entities: Entity[];
   summary?: ExtractiveSummary | null;
   offence_mentions?: OffenceMention[];

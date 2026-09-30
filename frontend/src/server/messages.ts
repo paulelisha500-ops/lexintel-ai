@@ -117,6 +117,7 @@ const SENTENCES_AR: Record<string, string> = {
   "The draft did not match the sources closely enough, so it was withheld.": "لم تطابق المسودة المصادر بدرجة كافية، لذا حُجبت.",
   "The writing model could not be loaded on this device.": "تعذّر تحميل نموذج الكتابة على هذا الجهاز.",
   "The writing model is not available right now.": "نموذج الكتابة غير متاح حالياً.",
+  "Written drafts are switched off on this server.": "المسودات المكتوبة معطلة على هذا الخادم.",
   "This device does not have enough memory for the writing model.": "لا تتوفر على هذا الجهاز ذاكرة كافية لنموذج الكتابة.",
   "The quoted key facts above are unaffected.": "الوقائع الرئيسية المقتبسة أعلاه لم تتأثر.",
   "The draft could not be written just now.": "تعذّرت كتابة المسودة الآن.",

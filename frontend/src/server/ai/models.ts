@@ -23,6 +23,7 @@ interface SlotState {
 const state: Record<ModelKey, SlotState> = {
   embeddings: { loaded: false, loading: false, error: null, progress: 0, loadSeconds: null, lastUsed: null, inUse: 0 },
   speech: { loaded: false, loading: false, error: null, progress: 0, loadSeconds: null, lastUsed: null, inUse: 0 },
+  speechLive: { loaded: false, loading: false, error: null, progress: 0, loadSeconds: null, lastUsed: null, inUse: 0 },
   writer: { loaded: false, loading: false, error: null, progress: 0, loadSeconds: null, lastUsed: null, inUse: 0 },
 };
 
@@ -135,7 +136,7 @@ async function use<T>(key: ModelKey, wait: boolean, run: () => Promise<T>): Prom
 
 // Give memory back when a model has been idle a while (the files stay cached).
 setInterval(() => {
-  for (const key of ["speech", "writer"] as ModelKey[]) {
+  for (const key of ["speech", "speechLive", "writer"] as ModelKey[]) {
     const s = state[key];
     if (s.loaded && !s.inUse && s.lastUsed && Date.now() - s.lastUsed > IDLE_UNLOAD_MS) unload(key).catch(() => undefined);
   }
@@ -202,9 +203,26 @@ export async function decodeAudio(blob: Blob): Promise<Float32Array> {
 }
 
 export async function transcribe(blob: Blob, language: string | null = null, wait = true): Promise<{ text: string }> {
-  const audio = await decodeAudio(blob);
-  if (audio.length < 1600) return { text: "" };
-  return use("speech", wait, () => call<{ text: string }>({ op: "transcribe", audio, language }, [audio.buffer]));
+  return transcribeMany([blob], language, wait, false);
+}
+
+/**
+ * Transcribe several consecutive recordings as one (they are decoded and joined). The live
+ * transcript uses this to catch up in one pass when chunks arrive faster than they transcribe,
+ * with the small fast model; the full recording uses the larger one.
+ */
+export async function transcribeMany(blobs: Blob[], language: string | null = null, wait = true, live = false): Promise<{ text: string }> {
+  const parts: Float32Array[] = [];
+  for (const b of blobs) {
+    try { parts.push(await decodeAudio(b)); } catch { /* an undecodable chunk is skipped */ }
+  }
+  const length = parts.reduce((n, p) => n + p.length, 0);
+  if (length < 1600) return { text: "" };
+  const audio = new Float32Array(length);
+  let at = 0;
+  for (const p of parts) { audio.set(p, at); at += p.length; }
+  const key: ModelKey = live ? "speechLive" : "speech";
+  return use(key, wait, () => call<{ text: string }>({ op: "transcribe", audio, language, live }, [audio.buffer]));
 }
 
 // ---------------------------------------------------------------------------

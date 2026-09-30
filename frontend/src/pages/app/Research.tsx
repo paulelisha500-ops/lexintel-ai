@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { BookmarkPlus, BookOpen, ExternalLink, Library, Quote, Send, ShieldAlert, Square } from "lucide-react";
-import { api, ApiError, streamEvents } from "../../api/client";
+import { api, ApiError, DRAFTS_ENABLED, streamEvents } from "../../api/client";
 import { useCase, useLibraryStats } from "../../api/hooks";
 import type { DraftStatus, ResearchResult } from "../../api/types";
 import { DraftStatusLine, GroundedText, GroundingLegend, LocalAIBadge, stripMarkdown } from "../../components/ai/AI";
@@ -172,8 +172,12 @@ export default function Research() {
             <ol className="list-decimal space-y-2 ps-4 text-sm muted">
               <li>{t("The library is searched by meaning and by keyword; law not in force on the date is removed.", "يُبحث في المكتبة حسب المعنى والكلمات، ويُستبعد القانون غير الساري في التاريخ.")}</li>
               <li>{t("The sentences that answer the question are quoted from the articles.", "تُقتبس من المواد الجمل التي تجيب عن السؤال.")}</li>
-              <li>{t("A small local model writes a short draft from those articles only.", "يكتب نموذج محلي صغير مسودة قصيرة من تلك المواد فقط.")}</li>
-              <li>{t("Every sentence of the draft is checked against the articles; anything not found is marked.", "تُطابق كل جملة من المسودة مع المواد، ويُعلَّم ما لا يوجد فيها.")}</li>
+              {DRAFTS_ENABLED ? (<>
+                <li>{t("A small local model writes a short draft from those articles only.", "يكتب نموذج محلي صغير مسودة قصيرة من تلك المواد فقط.")}</li>
+                <li>{t("Every sentence of the draft is checked against the articles; anything not found is marked.", "تُطابق كل جملة من المسودة مع المواد، ويُعلَّم ما لا يوجد فيها.")}</li>
+              </>) : (
+                <li>{t("Nothing is paraphrased: every passage shown is quoted from an official article, with its citation.", "لا شيء مُعاد الصياغة: كل مقطع معروض مقتبس من مادة رسمية مع إحالتها.")}</li>
+              )}
             </ol>
           </Card>
           <Alert tone="info" size="sm" title={t("Always verify", "تحقق دائماً")}>
