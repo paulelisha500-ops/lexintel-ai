@@ -5,6 +5,7 @@ import {
   ScrollText, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { usePrefs } from "../../lib/prefs";
+import { asset } from "../../lib/asset";
 
 export default function Home() {
   const { t, dir } = usePrefs();
@@ -48,7 +49,7 @@ export default function Home() {
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-night-950">
         <img
-          src="/images/hero-dubai.jpg"
+          src={asset("images/hero-dubai.jpg")}
           alt={t("Downtown Dubai skyline", "أفق وسط مدينة دبي")}
           className="absolute inset-0 -z-10 size-full object-cover opacity-55"
           {...{ fetchpriority: "high" }}
@@ -137,7 +138,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2">
           <div className="relative">
             <img
-              src="/images/gavel-marble.jpg"
+              src={asset("images/gavel-marble.jpg")}
               alt={t("Judge's gavel on marble", "مطرقة القاضي على الرخام")}
               loading="lazy"
               className="aspect-[4/3] w-full rounded-2xl object-cover shadow-xl"
@@ -174,9 +175,9 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="grid gap-5 md:grid-cols-3">
           {[
-            { img: "/images/microphone.jpg", title: t("Statements, recorded fairly", "إفادات مسجَّلة بإنصاف"), body: t("No emotion or 'lie detection' scoring — only who spoke, in what role, and what was said.", "لا تقييم للمشاعر أو 'كشف الكذب' — فقط من تحدّث وبأي صفة وماذا قال.") },
-            { img: "/images/law-books.jpg", title: t("A law library you control", "مكتبة قانونية تتحكم بها"), body: t("Upload official law PDFs; articles are indexed in Arabic and English.", "ارفع ملفات القوانين الرسمية لتُفهرس المواد بالعربية والإنجليزية.") },
-            { img: "/images/signing.jpg", title: t("Evidence you can trust", "أدلة موثوقة"), body: t("Every file is fingerprinted on upload and can be re-verified at any time.", "لكل ملف بصمة رقمية عند رفعه ويمكن التحقق منها في أي وقت.") },
+            { img: asset("images/microphone.jpg"), title: t("Statements, recorded fairly", "إفادات مسجَّلة بإنصاف"), body: t("No emotion or 'lie detection' scoring — only who spoke, in what role, and what was said.", "لا تقييم للمشاعر أو 'كشف الكذب' — فقط من تحدّث وبأي صفة وماذا قال.") },
+            { img: asset("images/law-books.jpg"), title: t("A law library you control", "مكتبة قانونية تتحكم بها"), body: t("Upload official law PDFs; articles are indexed in Arabic and English.", "ارفع ملفات القوانين الرسمية لتُفهرس المواد بالعربية والإنجليزية.") },
+            { img: asset("images/signing.jpg"), title: t("Evidence you can trust", "أدلة موثوقة"), body: t("Every file is fingerprinted on upload and can be re-verified at any time.", "لكل ملف بصمة رقمية عند رفعه ويمكن التحقق منها في أي وقت.") },
           ].map((card) => (
             <article key={card.title} className="aegov-card card-bordered overflow-hidden bg-whitely-50 !p-0">
               <img src={card.img} alt="" loading="lazy" className="aspect-[16/10] w-full object-cover" />
@@ -191,7 +192,7 @@ export default function Home() {
 
       {/* CTA */}
       <section className="relative isolate overflow-hidden">
-        <img src="/images/dubai-sunset.jpg" alt="" loading="lazy" className="absolute inset-0 -z-10 size-full object-cover" />
+        <img src={asset("images/dubai-sunset.jpg")} alt="" loading="lazy" className="absolute inset-0 -z-10 size-full object-cover" />
         <div className="absolute inset-0 -z-10 bg-night-950/70" />
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-16 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>

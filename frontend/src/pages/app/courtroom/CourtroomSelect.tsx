@@ -7,6 +7,7 @@ import { PageHeader } from "../../../components/ui/data";
 import { courtDay, fmtTime } from "../../../lib/format";
 import { label } from "../../../lib/labels";
 import { usePrefs } from "../../../lib/prefs";
+import { asset } from "../../../lib/asset";
 
 export default function CourtroomSelect() {
   const { t, lang } = usePrefs();
@@ -46,7 +47,7 @@ export default function CourtroomSelect() {
           </Card>
         </div>
         <div className="overflow-hidden rounded-xl">
-          <img src="/images/microphone.jpg" alt="" className="aspect-[4/3] w-full object-cover" />
+          <img src={asset("images/microphone.jpg")} alt="" className="aspect-[4/3] w-full object-cover" />
           <div className="surface rounded-t-none p-5 text-sm">
             <p className="font-semibold">{t("How the stand works", "كيف تعمل المنصة")}</p>
             <ol className="mt-2 list-decimal space-y-1 ps-5 muted">

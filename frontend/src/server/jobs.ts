@@ -1,8 +1,12 @@
 /**
- * Background jobs (port of app/tasks.py), run one at a time in this tab:
- * evidence OCR + case intelligence, complaint triage, statement
- * transcription/summaries and Law Library ingestion. Anything left queued
- * when the page closed is picked up again on the next start.
+ * Background jobs (port of app/tasks.py), run one at a time: evidence OCR + case
+ * intelligence, complaint triage, statement transcription/summaries and Law Library
+ * ingestion. Anything left queued when the page closed is picked up again on the next start.
+ *
+ * With several tabs open, only one of them (the leader, chosen with the Web Locks API)
+ * runs jobs; the others just record the work as queued, and the leader picks it up when
+ * their save arrives. Every job re-reads its record after each long step, so a newer copy
+ * of the database loaded meanwhile is never overwritten with a stale one.
  */
 import { extractiveSummary, offenceMentions } from "./ai/analysis";
 import { AUDIO_VIDEO_EXTENSIONS, extensionOf, extractText } from "./ai/documents";
@@ -12,15 +16,20 @@ import { transcribe } from "./ai/models";
 import { isArabic } from "./ai/text";
 import { triageComplaint } from "./ai/triage";
 import { nowISO, uuid } from "./core";
-import { db, files, save } from "./store";
+import { db, files, onExternalChange, save } from "./store";
 
 type Job = ["process_evidence" | "classify_complaint" | "finalize_statement" | "summarize_statement" | "ingest_law_document", string];
 
 const queue: Job[] = [];
 let running = false;
+let current: string | null = null;
+let leader = false;
 
-export function dispatch(name: Job[0], id: string): "inline" {
-  if (!queue.some(([n, i]) => n === name && i === id)) queue.push([name, id]);
+const keyOf = (name: string, id: string) => `${name}:${id}`;
+
+export function dispatch(name: Job[0], id: string): "inline" | "queued" {
+  if (!leader) return "queued"; // the leading tab picks it up when this tab's save arrives
+  if (current !== keyOf(name, id) && !queue.some(([n, i]) => n === name && i === id)) queue.push([name, id]);
   void pump();
   return "inline";
 }
@@ -31,10 +40,13 @@ async function pump(): Promise<void> {
   try {
     while (queue.length) {
       const [name, id] = queue.shift()!;
+      current = keyOf(name, id);
       try {
         await RUNNERS[name](id);
       } catch (e) {
         console.error(`job ${name} failed`, e);
+      } finally {
+        current = null;
       }
     }
   } finally {
@@ -42,13 +54,25 @@ async function pump(): Promise<void> {
   }
 }
 
+/** Become the tab that runs jobs (immediately if this is the only tab, or when the leader closes). */
+export function startJobRunner(): void {
+  const lead = () => { leader = true; resumePendingJobs(); };
+  const locks = (navigator as any).locks;
+  if (locks?.request) locks.request("lexintel-jobs", () => { lead(); return new Promise(() => undefined); });
+  else lead();
+  onExternalChange(() => { if (leader) resumePendingJobs(); });
+}
+
 /** Requeue work that was interrupted (retry_stuck_jobs). */
 export function resumePendingJobs(): void {
+  if (!leader) return;
   const d = db();
-  for (const e of d.evidence) if (["queued", "processing"].includes(e.processing_status)) { e.processing_status = "queued"; dispatch("process_evidence", e.id); }
-  for (const c of d.complaints) if (c.ai_status === "pending") dispatch("classify_complaint", c.id);
-  for (const l of d.laws) if (["queued", "processing"].includes(l.status)) { l.status = "queued"; dispatch("ingest_law_document", l.id); }
-  for (const s of d.statements) if (["queued", "processing"].includes(s.transcript_status)) { s.transcript_status = "queued"; dispatch("finalize_statement", s.id); }
+  const busy = (name: string, id: string) => current === keyOf(name, id) || queue.some(([n, i]) => n === name && i === id);
+  const requeue = (name: Job[0], id: string, reset: () => void) => { if (!busy(name, id)) { reset(); dispatch(name, id); } };
+  for (const e of d.evidence) if (["queued", "processing"].includes(e.processing_status)) requeue("process_evidence", e.id, () => { e.processing_status = "queued"; });
+  for (const c of d.complaints) if (c.ai_status === "pending") requeue("classify_complaint", c.id, () => undefined);
+  for (const l of d.laws) if (["queued", "processing"].includes(l.status)) requeue("ingest_law_document", l.id, () => { l.status = "queued"; });
+  for (const s of d.statements) if (["queued", "processing"].includes(s.transcript_status)) requeue("finalize_statement", s.id, () => { s.transcript_status = "queued"; });
 }
 
 const RUNNERS: Record<Job[0], (id: string) => Promise<void>> = {
@@ -129,69 +153,81 @@ const RUNNERS: Record<Job[0], (id: string) => Promise<void>> = {
   },
 
   async finalize_statement(id) {
-    const st = db().statements.find((s) => s.id === id);
-    if (!st) return;
-    let transcript = st.transcript ?? "";
-    if (st.recording_file_id && st.transcript_source !== "edited") {
-      st.transcript_status = "processing";
+    const find = () => db().statements.find((s) => s.id === id);
+    const first = find();
+    if (!first) return;
+    let transcript = first.transcript ?? "";
+    if (first.recording_file_id) {
+      first.transcript_status = "processing";
       save();
+      let recordingText = "";
+      let failed = false;
       try {
-        const blob = await files.get(st.recording_file_id);
-        if (blob) {
-          const { text } = await transcribe(blob, st.transcript_language);
-          if (text.trim()) {
-            // A multi-speaker dialogue keeps its "who said what"; the recording's own
-            // transcription (one voice-agnostic block) is stored beside it.
-            if ((st.speakers?.length ?? 0) > 1) st.recording_transcript = text.trim();
-            else { transcript = text.trim(); Object.assign(st, { transcript, transcript_source: "final" }); }
-          }
-        }
-        st.transcript_status = transcript ? "done" : "none";
+        const blob = await files.get(first.recording_file_id);
+        if (blob) recordingText = (await transcribe(blob, first.transcript_language)).text.trim();
       } catch (e) {
         console.warn("final transcription failed", e);
-        st.transcript_status = transcript ? "done" : "failed";
+        failed = true;
       }
+      const st = find();
+      if (!st) return;
+      if (recordingText) {
+        // A dialogue keeps who said what, and a clerk's correction stands; in both cases the
+        // recording's own transcription is stored beside the transcript instead of replacing it.
+        if ((st.speakers?.length ?? 0) > 1 || st.transcript_source === "edited") st.recording_transcript = recordingText;
+        else Object.assign(st, { transcript: recordingText, transcript_source: "final" });
+      }
+      transcript = st.transcript ?? "";
+      st.transcript_status = transcript ? "done" : failed ? "failed" : "none";
+      save();
     } else {
-      st.transcript_status = transcript ? "done" : "none";
+      first.transcript_status = transcript ? "done" : "none";
+      save();
     }
     if (transcript) {
-      st.summary = await extractiveSummary(transcript, 4, 1000);
-      const intelligence = await runCaseIntelligence(st.case_id ?? "", transcript);
-      st.extracted_entities = intelligence.entities;
-      st.offence_mentions = intelligence.offence_mentions;
+      const summary = await extractiveSummary(transcript, 4, 1000);
+      const intelligence = await runCaseIntelligence(first.case_id ?? "", transcript);
+      const st = find();
+      if (!st) return;
+      Object.assign(st, { summary, extracted_entities: intelligence.entities, offence_mentions: intelligence.offence_mentions });
+      save();
     }
-    save();
   },
 
   async summarize_statement(id) {
+    const text = db().statements.find((s) => s.id === id)?.transcript;
+    if (!text) return;
+    const summary = await extractiveSummary(text, 4, 1000);
+    const mentions = (await offenceMentions(text)).mentions;
     const st = db().statements.find((s) => s.id === id);
-    if (!st?.transcript) return;
-    st.summary = await extractiveSummary(st.transcript, 4, 1000);
-    st.offence_mentions = (await offenceMentions(st.transcript)).mentions;
+    if (st) Object.assign(st, { summary, offence_mentions: mentions });
     save();
   },
 
   async ingest_law_document(id) {
-    const law = db().laws.find((l) => l.id === id);
-    if (!law || law.status === "indexed") return;
-    law.status = "processing";
-    law.error = null;
+    const find = () => db().laws.find((l) => l.id === id);
+    const first = find();
+    if (!first || first.status === "indexed") return;
+    Object.assign(first, { status: "processing", error: null });
     save();
+    let result: Record<string, unknown>;
     try {
-      const blob = await files.get(law.file_id);
+      const blob = await files.get(first.file_id);
       if (!blob) throw new Error("The stored file is missing.");
-      const extracted = await extractText(blob, law.original_filename);
+      const extracted = await extractText(blob, first.original_filename);
       if (extracted.text.trim().length < 50) throw new Error("No readable text was found in this file (it may be an image-only scan the OCR could not read).");
       const { articles, mode } = parseArticles(extracted.text);
       if (!articles.length) throw new Error("The text could not be split into articles or sections.");
       const notes = [...extracted.warnings];
       if (mode === "sections") notes.push("No 'Article (N)' / 'المادة (N)' markers were found, so the text was indexed as numbered sections.");
       const label = mode === "articles" ? "Art." : "Section";
-      Object.assign(law, { status: "indexed", article_count: articles.length, parse_mode: mode, indexed_at: nowISO(), error: notes.join("; ") || null,
-                           articles: articles.map((a) => ({ number: a.number, label: `${label} ${a.number}`, body: a.body })) });
+      result = { status: "indexed", article_count: articles.length, parse_mode: mode, indexed_at: nowISO(), error: notes.join("; ") || null,
+                 articles: articles.map((x) => ({ number: x.number, label: `${label} ${x.number}`, body: x.body })) };
     } catch (e) {
-      Object.assign(law, { status: "failed", error: `${(e as Error).name}: ${(e as Error).message}`.slice(0, 2000) });
+      result = { status: "failed", error: `${(e as Error).name}: ${(e as Error).message}`.slice(0, 2000) };
     }
+    const law = find();
+    if (law) Object.assign(law, result);
     save();
   },
 };

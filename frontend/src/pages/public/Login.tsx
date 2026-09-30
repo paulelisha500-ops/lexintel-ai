@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { Alert, Button, Input } from "../../components/ui/core";
 import { BrandMark } from "../../components/layout/Brand";
 import { usePrefs } from "../../lib/prefs";
+import { asset } from "../../lib/asset";
 
 export default function Login() {
   const { t } = usePrefs();
@@ -39,7 +40,7 @@ export default function Login() {
   return (
     <div className="grid min-h-[calc(100vh-4.25rem)] lg:grid-cols-2">
       <div className="relative hidden overflow-hidden lg:block">
-        <img src="/images/abu-dhabi-towers.jpg" alt={t("Abu Dhabi towers at sunset", "أبراج أبوظبي عند الغروب")} className="absolute inset-0 size-full object-cover" />
+        <img src={asset("images/abu-dhabi-towers.jpg")} alt={t("Abu Dhabi towers at sunset", "أبراج أبوظبي عند الغروب")} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-night-950/90 via-night-950/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-12 text-white">
           <ShieldCheck className="size-8 text-gold-300" aria-hidden />

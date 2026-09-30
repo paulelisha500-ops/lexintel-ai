@@ -312,13 +312,14 @@ export default function Stand() {
     await startMedia();
   };
 
-  const finishStatement = async (transcript: string) => {
+  /** `transcript` is sent only when the clerk changed it; otherwise the server's own complete version is kept. */
+  const finishStatement = async (transcript: string | null) => {
     if (!state || !active) return;
     const statementId = active.id;
     const blob = await stopMedia();
     await chunkQueue.current;
     try {
-      const s = await api.post<CourtroomState>(`/courtroom/sessions/${state.session.id}/step-down`, { transcript }, { retry: false });
+      const s = await api.post<CourtroomState>(`/courtroom/sessions/${state.session.id}/step-down`, transcript === null ? {} : { transcript }, { retry: false });
       setState(s);
       setSegments([]);
       setReviewOpen(false);
@@ -560,18 +561,21 @@ const CallToStandModal: React.FC<{ open: boolean; onClose: () => void; sessionId
   );
 };
 
-const ReviewModal: React.FC<{ open: boolean; onClose: () => void; initial: string; onConfirm: (transcript: string) => Promise<void> }> = ({ open, onClose, initial, onConfirm }) => {
+const ReviewModal: React.FC<{ open: boolean; onClose: () => void; initial: string; onConfirm: (transcript: string | null) => Promise<void> }> = ({ open, onClose, initial, onConfirm }) => {
   const { t } = usePrefs();
   const [text, setText] = useState(initial);
+  const [edited, setEdited] = useState(false);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (open) setText(initial); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Until the clerk types, the box follows the live transcript (late chunks still arrive).
+  useEffect(() => { if (open) setEdited(false); }, [open]);
+  useEffect(() => { if (open && !edited) setText(initial); }, [open, initial, edited]);
   return (
     <Modal open={open} onOpenChange={(o) => !o && !saving && onClose()} title={t("Step down — review the transcript", "الانصراف — مراجعة التفريغ")}
       description={t("Correct anything the live transcript misheard. The full recording will also be transcribed again at higher quality.", "صحّح ما أخطأ فيه التفريغ المباشر. سيُعاد تفريغ التسجيل الكامل بجودة أعلى أيضاً.")}
       size="lg"
       footer={<><Button variant="outline" disabled={saving} onClick={onClose}>{t("Keep recording", "متابعة التسجيل")}</Button>
-        <Button variant="danger" loading={saving} icon={<Square className="size-4" />} onClick={async () => { setSaving(true); try { await onConfirm(text); } finally { setSaving(false); } }}>{t("Stop & close statement", "إيقاف وإغلاق الإفادة")}</Button></>}>
-      <Textarea label={t("Transcript", "التفريغ")} rows={12} value={text} onChange={(e) => setText(e.target.value)} dir="auto" />
+        <Button variant="danger" loading={saving} icon={<Square className="size-4" />} onClick={async () => { setSaving(true); try { await onConfirm(edited ? text : null); } finally { setSaving(false); } }}>{t("Stop & close statement", "إيقاف وإغلاق الإفادة")}</Button></>}>
+      <Textarea label={t("Transcript", "التفريغ")} rows={12} value={text} onChange={(e) => { setEdited(true); setText(e.target.value); }} dir="auto" />
     </Modal>
   );
 };

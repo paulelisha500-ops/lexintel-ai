@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { api } from "./client";
 import type {
   AIModelStatus, Analytics, MachineMemory, AuditEntry, CaseBrief, CaseDetailResponse, CaseParty, CaseSummary, Complaint, CourtroomState,
@@ -28,7 +28,7 @@ export interface CaseFilters {
 }
 
 export const useCases = (filters: CaseFilters = {}, opts?: Opts<Paged<CaseSummary>>) =>
-  useQuery({ queryKey: ["cases", filters], queryFn: () => api.get<Paged<CaseSummary>>(`/cases${qs({ ...filters })}`), ...opts });
+  useQuery({ queryKey: ["cases", filters], placeholderData: keepPreviousData, queryFn: () => api.get<Paged<CaseSummary>>(`/cases${qs({ ...filters })}`), ...opts });
 
 export const useCase = (id: string | undefined) =>
   useQuery({ queryKey: ["case", id], queryFn: () => api.get<CaseDetailResponse>(`/cases/${id}`), enabled: !!id });
@@ -78,7 +78,7 @@ export const useCaseAudit = (id: string | undefined, enabled = true) =>
 
 export const useHearings = (params: { day?: string; start?: string; end?: string; case_id?: string; mine?: boolean }) =>
   useQuery({
-    queryKey: ["hearings", params],
+    queryKey: ["hearings", params], placeholderData: keepPreviousData,
     queryFn: () => api.get<Hearing[]>(`/hearings${qs(params)}`),
     refetchInterval: 60_000,
   });
@@ -94,7 +94,7 @@ export const useJudges = () =>
 
 export const useComplaints = (filters: { status?: string; case_type?: string; q?: string }) =>
   useQuery({
-    queryKey: ["complaints", filters],
+    queryKey: ["complaints", filters], placeholderData: keepPreviousData,
     queryFn: () => api.get<Paged<Complaint>>(`/complaints${qs({ ...filters, limit: 200 })}`),
     refetchInterval: (q) => ((q.state.data?.items ?? []).some((c) => c.ai_status === "pending") ? 4000 : 30_000),
   });
@@ -133,7 +133,7 @@ export const useAnalytics = () =>
 
 export const useSearch = (q: string) =>
   useQuery({
-    queryKey: ["search", q],
+    queryKey: ["search", q], placeholderData: keepPreviousData,
     queryFn: () => api.get<SearchResponse>(`/search${qs({ q })}`),
     enabled: q.trim().length >= 2,
     staleTime: 15_000,
@@ -150,7 +150,7 @@ export const useSystemStatus = () =>
 
 export const useAudit = (filters: { action?: string; username?: string; entity_type?: string; offset?: number }) =>
   useQuery({
-    queryKey: ["admin", "audit", filters],
+    queryKey: ["admin", "audit", filters], placeholderData: keepPreviousData,
     queryFn: () => api.get<Paged<AuditEntry>>(`/admin/audit${qs({ ...filters, limit: 50 })}`),
   });
 

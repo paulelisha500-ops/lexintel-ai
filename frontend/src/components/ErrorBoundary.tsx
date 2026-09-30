@@ -37,7 +37,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode; 
             <button className="aegov-btn btn-sm" onClick={() => this.setState({ error: null })}>
               {ar ? "إعادة المحاولة" : "Try again"}
             </button>
-            <a className="aegov-btn btn-outline btn-sm" href="/">
+            <a className="aegov-btn btn-outline btn-sm" href={import.meta.env.BASE_URL}>
               {ar ? "الصفحة الرئيسية" : "Home"}
             </a>
           </div>

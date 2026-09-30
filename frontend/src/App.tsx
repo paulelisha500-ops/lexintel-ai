@@ -7,33 +7,70 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Spinner } from "./components/ui/core";
 
-const Home = lazy(() => import("./pages/public/Home"));
-const FileComplaint = lazy(() => import("./pages/public/FileComplaint"));
-const TrackComplaint = lazy(() => import("./pages/public/TrackComplaint"));
-const Login = lazy(() => import("./pages/public/Login"));
-const NotFound = lazy(() => import("./pages/public/NotFound"));
+const pages = {
+  Home: () => import("./pages/public/Home"),
+  FileComplaint: () => import("./pages/public/FileComplaint"),
+  TrackComplaint: () => import("./pages/public/TrackComplaint"),
+  Login: () => import("./pages/public/Login"),
+  NotFound: () => import("./pages/public/NotFound"),
+  Dashboard: () => import("./pages/app/Dashboard"),
+  Cases: () => import("./pages/app/Cases"),
+  CaseWorkspace: () => import("./pages/app/case/CaseWorkspace"),
+  Complaints: () => import("./pages/app/Complaints"),
+  Hearings: () => import("./pages/app/Hearings"),
+  CourtroomSelect: () => import("./pages/app/courtroom/CourtroomSelect"),
+  Stand: () => import("./pages/app/courtroom/Stand"),
+  Research: () => import("./pages/app/Research"),
+  Library: () => import("./pages/app/Library"),
+  LawDocumentView: () => import("./pages/app/LawDocumentView"),
+  Analytics: () => import("./pages/app/Analytics"),
+  AdminUsers: () => import("./pages/app/admin/Users"),
+  AdminAudit: () => import("./pages/app/admin/Audit"),
+  AdminSystem: () => import("./pages/app/admin/System"),
+  Profile: () => import("./pages/app/Profile"),
+};
 
-const Dashboard = lazy(() => import("./pages/app/Dashboard"));
-const Cases = lazy(() => import("./pages/app/Cases"));
-const CaseWorkspace = lazy(() => import("./pages/app/case/CaseWorkspace"));
-const Complaints = lazy(() => import("./pages/app/Complaints"));
-const Hearings = lazy(() => import("./pages/app/Hearings"));
-const CourtroomSelect = lazy(() => import("./pages/app/courtroom/CourtroomSelect"));
-const Stand = lazy(() => import("./pages/app/courtroom/Stand"));
-const Research = lazy(() => import("./pages/app/Research"));
-const Library = lazy(() => import("./pages/app/Library"));
-const LawDocumentView = lazy(() => import("./pages/app/LawDocumentView"));
-const Analytics = lazy(() => import("./pages/app/Analytics"));
-const AdminUsers = lazy(() => import("./pages/app/admin/Users"));
-const AdminAudit = lazy(() => import("./pages/app/admin/Audit"));
-const AdminSystem = lazy(() => import("./pages/app/admin/System"));
-const Profile = lazy(() => import("./pages/app/Profile"));
+/**
+ * Every page is its own chunk, so the first screen loads fast. Once the browser is idle the
+ * rest are fetched in the background, so moving between pages never waits on the network.
+ */
+export function prefetchPages(): void {
+  const run = () => Object.values(pages).forEach((load, i) => window.setTimeout(() => { load().catch(() => undefined); }, i * 60));
+  const idle = (window as any).requestIdleCallback as ((cb: () => void, opts?: { timeout: number }) => void) | undefined;
+  if (idle) idle(run, { timeout: 4000 }); else window.setTimeout(run, 1500);
+}
 
-const PageFallback = () => (
-  <div className="grid min-h-[40vh] place-items-center">
-    <Spinner />
-  </div>
-);
+const Home = lazy(pages.Home);
+const FileComplaint = lazy(pages.FileComplaint);
+const TrackComplaint = lazy(pages.TrackComplaint);
+const Login = lazy(pages.Login);
+const NotFound = lazy(pages.NotFound);
+
+const Dashboard = lazy(pages.Dashboard);
+const Cases = lazy(pages.Cases);
+const CaseWorkspace = lazy(pages.CaseWorkspace);
+const Complaints = lazy(pages.Complaints);
+const Hearings = lazy(pages.Hearings);
+const CourtroomSelect = lazy(pages.CourtroomSelect);
+const Stand = lazy(pages.Stand);
+const Research = lazy(pages.Research);
+const Library = lazy(pages.Library);
+const LawDocumentView = lazy(pages.LawDocumentView);
+const Analytics = lazy(pages.Analytics);
+const AdminUsers = lazy(pages.AdminUsers);
+const AdminAudit = lazy(pages.AdminAudit);
+const AdminSystem = lazy(pages.AdminSystem);
+const Profile = lazy(pages.Profile);
+
+/** A spinner only if loading takes noticeably long, so quick loads never flash one. */
+const PageFallback = () => {
+  const [show, setShow] = React.useState(false);
+  React.useEffect(() => {
+    const id = window.setTimeout(() => setShow(true), 250);
+    return () => window.clearTimeout(id);
+  }, []);
+  return <div className="grid min-h-[40vh] place-items-center">{show && <Spinner />}</div>;
+};
 
 const RequireAuth: React.FC<{ children: React.ReactNode; allow?: (role?: string) => boolean }> = ({ children, allow }) => {
   const { user, ready } = useAuth();

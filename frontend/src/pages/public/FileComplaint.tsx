@@ -8,6 +8,7 @@ import { Stepper } from "../../components/ui/data";
 import { cn } from "../../lib/cn";
 import { CASE_TYPES } from "../../lib/labels";
 import { usePrefs } from "../../lib/prefs";
+import { asset } from "../../lib/asset";
 
 interface Submitted {
   reference_number: string;
@@ -142,7 +143,7 @@ export default function FileComplaint() {
   return (
     <div>
       <section className="relative isolate overflow-hidden bg-night-950">
-        <img src="/images/signing.jpg" alt="" className="absolute inset-0 -z-10 size-full object-cover opacity-35" />
+        <img src={asset("images/signing.jpg")} alt="" className="absolute inset-0 -z-10 size-full object-cover opacity-35" />
         <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
           <h1 className="font-heading text-3xl font-bold text-white sm:text-4xl">{t("File a complaint", "تقديم شكوى")}</h1>
           <p className="mt-2 text-white/80">

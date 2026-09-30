@@ -7,7 +7,7 @@
  */
 import { flush, loadDatabase, save, setDatabase } from "./store";
 import { buildInitialDatabase } from "./seed";
-import { resumePendingJobs } from "./jobs";
+import { startJobRunner } from "./jobs";
 import { dispatchRequest, Raw, Sse, Status } from "./router";
 import { HttpError } from "./core";
 import { languageOf, localize, translate } from "./messages";
@@ -32,7 +32,7 @@ export function boot(): Promise<void> {
         setDatabase(d);
         await flush();
       }
-      resumePendingJobs();
+      startJobRunner();
       // The meaning model backs most features; fetch it early (cached after the first visit).
       warm("embeddings").catch((e) => console.warn("embeddings model not loaded yet", e));
     })().catch((e) => {
@@ -92,7 +92,7 @@ export async function localFetch(path: string, init: RequestInit = {}): Promise<
     const result = init.signal
       ? await Promise.race([work, new Promise<never>((_, reject) => init.signal!.addEventListener("abort", () => reject(abortError()), { once: true }))])
       : await work;
-    save();
+    if ((init.method ?? "GET").toUpperCase() !== "GET") save(); // reads change nothing (mutations also save themselves)
     if (result instanceof Sse) return sseResponse(result, init.signal, lang);
     if (result instanceof Raw) {
       return new Response(result.body, { status: 200, headers: {

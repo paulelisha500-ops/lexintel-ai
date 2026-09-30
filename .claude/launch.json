@@ -48,6 +48,18 @@
         "--strictPort"
       ],
       "port": 3016
+    },
+    {
+      "name": "ghpages-sim",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3020",
+        "--directory",
+        "C:\\Users\\paule\\AppData\\Local\\Temp\\claude\\C--Users-paule-Projects-lexintel-ai\\acaaf95e-c34b-4fc7-80a5-77d92446e2d4\\scratchpad\\ghp"
+      ],
+      "port": 3020
     }
   ]
 }

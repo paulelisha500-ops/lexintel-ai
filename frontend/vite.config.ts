@@ -2,7 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig({
+// The static builds (mode "space": Hugging Face, GitHub Pages) use relative URLs so the same
+// files work at a site root or under a sub-path such as /lexintel-ai/.
+export default defineConfig(({ mode }) => ({
+  base: mode === "space" ? "./" : "/",
   plugins: [react(), tailwindcss()],
   server: {
     port: 3005,
@@ -33,4 +36,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

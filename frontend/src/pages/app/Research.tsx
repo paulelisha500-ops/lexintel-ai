@@ -11,6 +11,7 @@ import { PageHeader } from "../../components/ui/data";
 import { fmtDate } from "../../lib/format";
 import { JURISDICTIONS, label, options } from "../../lib/labels";
 import { usePrefs } from "../../lib/prefs";
+import { asset } from "../../lib/asset";
 
 interface Turn {
   id: number;
@@ -129,7 +130,7 @@ export default function Research() {
           <div className="space-y-6">
             {turns.length === 0 && (
               <div className="surface overflow-hidden">
-                <img src="/images/law-books.jpg" alt="" className="h-40 w-full object-cover" />
+                <img src={asset("images/law-books.jpg")} alt="" className="h-40 w-full object-cover" />
                 <EmptyState icon={<BookOpen className="size-7" />} title={t("Ask a question about UAE law", "اطرح سؤالاً عن القانون الإماراتي")}
                   description={t("For example: “What notice period applies when terminating an employment contract?”", "مثال: «ما مدة الإشعار عند إنهاء عقد العمل؟»")} />
               </div>

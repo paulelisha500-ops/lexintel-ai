@@ -7,6 +7,7 @@ import { cn } from "../../lib/cn";
 import { fmtDateTime } from "../../lib/format";
 import { label } from "../../lib/labels";
 import { usePrefs } from "../../lib/prefs";
+import { asset } from "../../lib/asset";
 
 interface TrackResult {
   reference_number: string;
@@ -57,7 +58,7 @@ export default function TrackComplaint() {
   return (
     <div>
       <section className="relative isolate overflow-hidden bg-night-950">
-        <img src="/images/abu-dhabi-night.jpg" alt="" className="absolute inset-0 -z-10 size-full object-cover opacity-45" />
+        <img src={asset("images/abu-dhabi-night.jpg")} alt="" className="absolute inset-0 -z-10 size-full object-cover opacity-45" />
         <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
           <h1 className="font-heading text-3xl font-bold text-white sm:text-4xl">{t("Track a complaint", "متابعة شكوى")}</h1>
           <p className="mt-2 text-white/80">

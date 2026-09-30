@@ -111,6 +111,22 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({ title, subtitle, table, 
   );
 };
 
+/**
+ * Draws a chart just after the page has painted, each in its own frame, so opening a page
+ * with several charts never stalls. The chart's box already has its final height, so
+ * nothing moves when it appears.
+ */
+let deferredSlot = 0;
+const Deferred: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const delay = 16 * (deferredSlot++ % 8);
+    const id = window.setTimeout(() => setReady(true), delay);
+    return () => { window.clearTimeout(id); deferredSlot = Math.max(0, deferredSlot - 1); };
+  }, []);
+  return ready ? <div className="lex-fade-in size-full">{children}</div> : null;
+};
+
 export const ColumnChart: React.FC<{
   data: { label: string; value: number }[];
   valueLabel: string;
@@ -122,6 +138,7 @@ export const ColumnChart: React.FC<{
   const max = Math.max(0, ...data.map((d) => d.value));
   return (
     <div style={{ height }} dir="ltr">
+      <Deferred>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dir === "rtl" ? [...data].reverse() : data} margin={{ top: 18, right: 8, left: -18, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke={c.grid} strokeWidth={1} />
@@ -139,6 +156,7 @@ export const ColumnChart: React.FC<{
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </Deferred>
     </div>
   );
 };
@@ -153,6 +171,7 @@ export const TrendChart: React.FC<{
   const id = React.useId().replace(/:/g, "");
   return (
     <div style={{ height }} dir="ltr">
+      <Deferred>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={dir === "rtl" ? [...data].reverse() : data} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
           <defs>
@@ -177,6 +196,7 @@ export const TrendChart: React.FC<{
           />
         </AreaChart>
       </ResponsiveContainer>
+      </Deferred>
     </div>
   );
 };
