@@ -11,12 +11,23 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
+/*
+ * Hugging Face serves images through a redirect to its CDN. A plain <img> request that
+ * follows it comes back unreadable ("opaque"), and the embedder policy then blocks it.
+ * Asking for the same file with CORS keeps it readable, so the headers can be added.
+ */
+function load(request) {
+  if (request.mode !== "no-cors") return fetch(request);
+  return fetch(request.url, { mode: "cors", credentials: "omit", headers: request.headers })
+    .catch(() => fetch(request));
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.cache === "only-if-cached" && request.mode !== "same-origin") return;
   if (new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    fetch(request).then((response) => {
+    load(request).then((response) => {
       if (response.status === 0) return response;
       const headers = new Headers(response.headers);
       headers.set("Cross-Origin-Opener-Policy", "same-origin");
