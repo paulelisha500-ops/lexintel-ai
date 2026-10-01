@@ -1,0 +1,77 @@
+# Builds the browser edition and publishes it to the Hugging Face Space on every push to
+# main -- no manual deployment. Needs one repository secret:
+#   HF_TOKEN  a Hugging Face access token with write access to the Space
+# Optional repository variable:
+#   HF_SPACE  the Space id (default: Elisha622/lexintel-ai)
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", "deploy/huggingface-space/**", ".github/workflows/huggingface.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: huggingface-space
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE: ${{ vars.HF_SPACE || 'Elisha622/lexintel-ai' }}
+    steps:
+      - name: Check for the Hugging Face token
+        id: token
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::warning::HF_TOKEN is not set, so nothing was published. Add it under Settings > Secrets and variables > Actions."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.present == 'true'
+        with:
+          lfs: true
+
+      - uses: actions/setup-node@v4
+        if: steps.token.outputs.present == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the browser edition
+        if: steps.token.outputs.present == 'true'
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx tsc -b
+          npx vite build --mode space --outDir "$RUNNER_TEMP/dist" --emptyOutDir
+
+      - name: Publish to the Space
+        if: steps.token.outputs.present == 'true'
+        run: |
+          git lfs install
+          git clone --quiet "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" "$RUNNER_TEMP/space"
+          cd "$RUNNER_TEMP/space"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs track "*.wasm" "*.jpg" "*.jpeg" "*.png" "*.webp" > /dev/null
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .gitattributes -exec rm -rf {} +
+          cp -R "$RUNNER_TEMP/dist/." .
+          cp "$GITHUB_WORKSPACE/deploy/huggingface-space/README.md" README.md
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The Space is already up to date."
+            exit 0
+          fi
+          git commit --quiet -m "Deploy LexIntel ${GITHUB_SHA::7}"
+          git push --quiet origin HEAD:main
+          echo "Published https://huggingface.co/spaces/${HF_SPACE}"

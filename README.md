@@ -93,7 +93,16 @@ Every output is built to be checked by a person:
 | **Server edition** — Docker Compose | FastAPI backend, PostgreSQL, MongoDB, Redis + Celery, Elasticsearch, Neo4j, Ollama, faster-whisper | A court or firm running LexIntel for many users on its own infrastructure |
 | **Single container** — root [`Dockerfile`](Dockerfile) | The server edition in one image (nginx, API, PostgreSQL, MongoDB, Redis, Ollama) | One server or a Hugging Face Docker Space |
 
-The browser edition implements the same API contract as the Python backend — same endpoints, roles, validation, error messages (in Arabic and English) and streaming — so the frontend is identical in all three. GitHub Pages is published automatically by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main`; Hugging Face with [`deploy/huggingface-space/deploy.sh`](deploy/huggingface-space/deploy.sh).
+The browser edition implements the same API contract as the Python backend — same endpoints, roles, validation, error messages (in Arabic and English) and streaming — so the frontend is identical in all three. ### Continuous deployment
+
+This project uses a GitHub Actions CI/CD pipeline. Pushing to the `main` branch triggers automated workflows that build the app and publish it — no manual deployment needed:
+
+| Workflow | Publishes to | Needs |
+|---|---|---|
+| [`.github/workflows/pages.yml`](.github/workflows/pages.yml) | GitHub Pages | Pages source set to *GitHub Actions* |
+| [`.github/workflows/huggingface.yml`](.github/workflows/huggingface.yml) | The Hugging Face Space | Repository secret `HF_TOKEN` (a Hugging Face token with write access to the Space) |
+
+Either can also be started by hand from the repository's *Actions* tab. [`deploy/huggingface-space/deploy.sh`](deploy/huggingface-space/deploy.sh) publishes to the Space from a local machine.
 
 ## Running with Docker
 
