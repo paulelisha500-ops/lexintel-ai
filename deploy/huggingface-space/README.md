@@ -57,4 +57,4 @@ The Law Library ships with three short sample law texts so research works immedi
 
 ## Requirements
 
-A current Chrome, Edge or Firefox on a desktop or laptop with at least 8 GB of memory. WebGPU (Chrome/Edge) makes drafting much faster. The courtroom stand needs microphone permission.
+A current Chrome, Edge or Firefox on a desktop or laptop with at least 8 GB of memory. The courtroom stand needs microphone permission.

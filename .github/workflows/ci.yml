@@ -1,0 +1,48 @@
+# Checks every push and pull request: the frontend must type-check and build (both
+# editions), and the backend must compile. Deployments run from their own workflows.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Type-check
+        run: npx tsc -b
+      - name: Build the server edition
+        run: npx vite build --outDir "$RUNNER_TEMP/dist-server" --emptyOutDir
+      - name: Build the browser edition
+        run: npx vite build --mode space --outDir "$RUNNER_TEMP/dist-space" --emptyOutDir
+      - name: The browser edition must not contain development hooks
+        run: "! grep -rlE '__qa|__lexintel' \"$RUNNER_TEMP/dist-space/assets\""
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile every module
+        run: python -m compileall -q backend/app backend/scripts backend/tests

@@ -37,6 +37,8 @@ jobs:
       - run: npx vite build --mode space --outDir dist-pages --emptyOutDir
       # GitHub Pages serves 404.html for unknown paths; the app routes in the URL hash.
       - run: cp dist-pages/index.html dist-pages/404.html && touch dist-pages/.nojekyll
+      # Which commit is live: https://<site>/version.json
+      - run: printf '{"commit":"%s","built_at":"%s"}\n' "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist-pages/version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist-pages

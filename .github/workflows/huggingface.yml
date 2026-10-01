@@ -54,6 +54,8 @@ jobs:
           npm ci --no-audit --no-fund
           npx tsc -b
           npx vite build --mode space --outDir "$RUNNER_TEMP/dist" --emptyOutDir
+          # Which commit is live: https://<space>/version.json
+          printf '{"commit":"%s","built_at":"%s"}\n' "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$RUNNER_TEMP/dist/version.json"
 
       - name: Publish to the Space
         if: steps.token.outputs.present == 'true'

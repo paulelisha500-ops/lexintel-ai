@@ -4,8 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 
 // The static builds (mode "space": Hugging Face, GitHub Pages) use relative URLs so the same
 // files work at a site root or under a sub-path such as /lexintel-ai/.
+// Which commit this build came from (set by CI; "dev" locally). Shown under System status.
+const buildId = (process.env.BUILD_ID || process.env.GITHUB_SHA || "dev").slice(0, 7);
+
 export default defineConfig(({ mode }) => ({
   base: mode === "space" ? "./" : "/",
+  define: { __BUILD_ID__: JSON.stringify(buildId) },
   plugins: [react(), tailwindcss()],
   server: {
     port: 3005,
