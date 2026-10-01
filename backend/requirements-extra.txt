@@ -3,7 +3,7 @@
 
 # Local speech-to-text for the courtroom stand and audio evidence. Runs on
 # CPU; courtroom audio never leaves the machine.
-faster-whisper==1.0.3
+faster-whisper==1.2.1
 
 # Small English NER model (~12 MB, ~50 MB RAM). The transformer model
 # (en_core_web_trf) is still used if SPACY_MODEL=en_core_web_trf, but it needs
