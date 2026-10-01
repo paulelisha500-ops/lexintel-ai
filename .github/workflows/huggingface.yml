@@ -51,7 +51,7 @@ jobs:
         if: steps.token.outputs.present == 'true'
         working-directory: frontend
         run: |
-          npm ci --no-audit --no-fund
+          ONNXRUNTIME_NODE_INSTALL=skip npm ci --no-audit --no-fund
           npx tsc -b
           npx vite build --mode space --outDir "$RUNNER_TEMP/dist" --emptyOutDir
           # Which commit is live: https://<space>/version.json

@@ -32,7 +32,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      - run: ONNXRUNTIME_NODE_INSTALL=skip npm ci --no-audit --no-fund
       - run: npx tsc -b
       - run: npx vite build --mode space --outDir dist-pages --emptyOutDir
       # GitHub Pages serves 404.html for unknown paths; the app routes in the URL hash.
