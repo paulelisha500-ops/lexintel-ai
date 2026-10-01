@@ -15,7 +15,8 @@ trap 'rm -rf "$WORK"' EXIT
 
 echo "==> building the self-contained frontend"
 (cd "$ROOT/frontend" && { [ -x node_modules/.bin/vite ] || npm ci --no-audit --no-fund; } && npx tsc -b \
-  && npx vite build --mode space --outDir "$WORK/dist" --emptyOutDir)
+  && BUILD_ID=$(git -C "$ROOT" rev-parse --short=7 HEAD) npx vite build --mode space --outDir "$WORK/dist" --emptyOutDir)
+printf '{"commit":"%s","built_at":"%s"}\n' "$(git -C "$ROOT" rev-parse --short=7 HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$WORK/dist/version.json"
 
 echo "==> preparing the Space repository"
 git clone --quiet "$SPACE_URL" "$WORK/space"

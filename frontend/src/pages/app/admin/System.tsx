@@ -77,6 +77,7 @@ export default function System() {
               { label: t("Upload storage free", "المساحة الحرة للملفات"), value: q.data.storage ? `${q.data.storage.free_gb} / ${q.data.storage.total_gb} GB` : "—" },
               { label: t("Law articles indexed", "المواد القانونية المفهرسة"), value: q.data.corpus.indexed_articles },
               { label: t("Articles in keyword search", "المواد في البحث النصي"), value: q.data.corpus.search_index_articles ?? "—" },
+              { label: t("Build", "الإصدار"), value: <span dir="ltr" className="font-mono">{__BUILD_ID__}</span> },
             ]} />
           </Card>
         </div>
