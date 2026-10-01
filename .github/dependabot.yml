@@ -1,40 +1,37 @@
-# Dependabot opens pull requests when dependencies have updates. Each ecosystem is
-# grouped, so updates arrive as one pull request per group, and CI checks every one.
+# Dependabot opens ONE pull request a month with every available update: the workflow
+# actions, the frontend packages and the backend packages together. CI checks it; if the
+# checks are green it is safe to merge. Major releases of frontend and backend packages
+# are left out, because they can need code changes -- those are done by hand.
 version: 2
+
+multi-ecosystem-groups:
+  dependencies:
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: deps
+
 updates:
   # The actions used by the workflows in .github/workflows
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
-    groups:
-      actions:
-        patterns: ["*"]
-    commit-message:
-      prefix: ci
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
 
-  # Frontend packages: minor and patch releases together, major releases one by one
+  # Frontend packages (minor and patch releases)
   - package-ecosystem: npm
     directory: /frontend
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      frontend:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: deps
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # Backend packages
+  # Backend packages (minor and patch releases)
   - package-ecosystem: pip
     directory: /backend
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      backend:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    commit-message:
-      prefix: deps
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
