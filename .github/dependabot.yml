@@ -1,0 +1,40 @@
+# Dependabot opens pull requests when dependencies have updates. Each ecosystem is
+# grouped, so updates arrive as one pull request per group, and CI checks every one.
+version: 2
+updates:
+  # The actions used by the workflows in .github/workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  # Frontend packages: minor and patch releases together, major releases one by one
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+
+  # Backend packages
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      backend:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
