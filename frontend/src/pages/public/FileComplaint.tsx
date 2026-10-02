@@ -173,7 +173,7 @@ export default function FileComplaint() {
                       onClick={() => setCaseType(value)}
                       aria-pressed={caseType === value}
                       className={cn(
-                        "rounded-xl border-2 p-4 text-start transition",
+                        "block w-full rounded-xl border-2 p-4 text-start transition",
                         caseType === value
                           ? "border-primary-600 bg-primary-50"
                           : "border-aeblack-100 hover:border-primary-300"
