@@ -116,6 +116,21 @@ def attributed_sentences(text: str, limit: int = 600) -> list[tuple[str, str | N
     return out[:limit]
 
 
+_LOOP_WORD = re.compile(r"[^\w\s]", re.UNICODE)
+
+
+def repeats_itself(text: str) -> bool:
+    """True when a transcript is stuck in a loop: the same phrase of 5 or more words three times
+    back to back. Speech models do this over silence or noise. People repeat themselves too, but
+    rarely a long phrase three times running."""
+    w = _LOOP_WORD.sub(" ", (text or "").lower()).split()[:5000]
+    for size in range(5, 31):
+        for i in range(len(w) - 3 * size + 1):
+            if w[i:i + size] == w[i + size:i + 2 * size] == w[i + 2 * size:i + 3 * size]:
+                return True
+    return False
+
+
 _MD_MARKS = re.compile(r"(\*\*|__|`+|~~)")
 _MD_LINE_START = re.compile(r"^\s{0,3}(?:#{1,6}\s+|[-*+]\s+|\d{1,2}[.)]\s+)", re.MULTILINE)
 

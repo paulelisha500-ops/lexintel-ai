@@ -110,6 +110,23 @@ export function attributedSentences(text: string, limit = 600): { text: string; 
   return out.slice(0, limit);
 }
 
+/**
+ * True when a transcript is stuck in a loop: the same phrase of 5 or more words three times back
+ * to back ("I was at the shop on the I was at the shop on the ..."). Speech models do this over
+ * silence or noise. People repeat themselves too, but rarely a long phrase three times running.
+ */
+export function repeatsItself(text: string): boolean {
+  const w = (text || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 5000);
+  for (let len = 5; len <= 30; len++) {
+    for (let i = 0; i + 3 * len <= w.length; i++) {
+      let same = true;
+      for (let k = 0; k < len && same; k++) same = w[i + k] === w[i + len + k] && w[i + k] === w[i + 2 * len + k];
+      if (same) return true;
+    }
+  }
+  return false;
+}
+
 export function stripMarkdown(text: string): string {
   const cleaned = (text || "").replace(/(\*\*|__|`+|~~)/g, "").replace(/^\s{0,3}(?:#{1,6}\s+|[-*+]\s+|\d{1,2}[.)]\s+)/gm, "");
   return cleaned.replace(/\n{3,}/g, "\n\n").trim();
