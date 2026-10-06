@@ -206,7 +206,7 @@ export const PageHeader: React.FC<{
     {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary-600">{eyebrow}</div>}
+        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary-700">{eyebrow}</div>}
         <h1 className="font-heading text-2xl font-bold leading-tight sm:text-3xl">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-3xl text-sm muted sm:text-base">{subtitle}</p>}
         {meta && <div className="mt-3 flex flex-wrap items-center gap-2">{meta}</div>}
@@ -230,7 +230,7 @@ export const Stepper: React.FC<{ steps: string[]; current: number }> = ({ steps,
             aria-hidden
             className={cn(
               "grid size-7 place-items-center rounded-full text-xs font-bold",
-              state === "done" && "bg-primary-600 text-white",
+              state === "done" && "bg-gold-600 text-white",
               state === "current" && "bg-primary-100 text-primary-800 ring-2 ring-primary-600",
               state === "upcoming" && "bg-aeblack-100 text-aeblack-500"
             )}

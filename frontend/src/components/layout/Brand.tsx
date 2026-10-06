@@ -21,7 +21,7 @@ export const BrandMark: React.FC<{ className?: string }> = ({ className }) => (
 export const Brand: React.FC<{ to?: string; inverted?: boolean; compact?: boolean }> = ({ to = "/", inverted, compact }) => {
   const { t } = usePrefs();
   return (
-    <Link to={to} className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2" aria-label="LexIntel">
+    <Link to={to} className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2" aria-label={compact ? "LexIntel" : undefined}>
       <BrandMark />
       {!compact && (
         <span className="leading-tight">

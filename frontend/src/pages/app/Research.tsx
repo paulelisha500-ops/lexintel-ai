@@ -131,7 +131,7 @@ export default function Research() {
             {turns.length === 0 && (
               <div className="surface overflow-hidden">
                 <img src={asset("images/law-books.jpg")} alt="" className="h-40 w-full object-cover" />
-                <EmptyState icon={<BookOpen className="size-7" />} title={t("Ask a question about UAE law", "اطرح سؤالاً عن القانون الإماراتي")}
+                <EmptyState level={2} icon={<BookOpen className="size-7" />} title={t("Ask a question about UAE law", "اطرح سؤالاً عن القانون الإماراتي")}
                   description={t("For example: “What notice period applies when terminating an employment contract?”", "مثال: «ما مدة الإشعار عند إنهاء عقد العمل؟»")} />
               </div>
             )}

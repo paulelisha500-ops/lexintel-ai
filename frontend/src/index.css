@@ -11,7 +11,8 @@
 /* The UAE Design System's dark tokens invert every palette scale, so no
    dark: overrides are needed for normal surfaces. These fixed tokens are for
    the few surfaces that stay dark in both themes (photo heroes, footer,
-   sidebar, video frame, tooltips) and must not invert. */
+   sidebar, video frame, tooltips) and must not invert. gold-600 is the selected-state gold
+   (white text on it), kept in both themes as the design system keeps its buttons'. */
 @theme {
   --color-white: #ffffff;
   --color-black: #000000;
@@ -20,6 +21,7 @@
   --color-night-800: #232528;
   --color-gold-100: #f2eccf;
   --color-gold-300: #d7bc6d;
+  --color-gold-600: #92722a;
   --animate-fade-in: fade-in 180ms ease-out;
   --animate-slide-up: slide-up 220ms ease-out;
   --animate-pulse-ring: pulse-ring 1.6s ease-out infinite;
@@ -56,6 +58,15 @@
   a:not(.aegov-link) {
     text-decoration-line: none;
   }
+  /* The design system's link gold (primary-600) reaches 4.5:1 only on pure white; on this
+     app's off-white surfaces it is 4.4:1, and its hover shade 3:1. Links use the next darker
+     shades so link text stays above the 4.5:1 minimum. (Utilities and buttons still win.) */
+  html a {
+    color: var(--color-primary-700);
+  }
+  html a:hover {
+    color: var(--color-primary-800);
+  }
   :focus-visible {
     outline: 2px solid var(--color-primary-600);
     outline-offset: 2px;
@@ -65,12 +76,33 @@
   }
 }
 
+/* The design system's own link-coloured text, in the same darker gold as links above. Its
+   component styles outrank layered overrides, so these sit outside any layer. */
+.aegov-btn.btn-link {
+  --btn-fg: var(--color-primary-700);
+}
+.tab-items:not(.tab-pills) .tab-link {
+  --tab-link-active-fg: var(--color-primary-700);
+}
+nav.aegov-breadcrumb a {
+  color: var(--color-primary-700);
+}
+nav.aegov-breadcrumb a:hover {
+  color: var(--color-primary-800);
+}
+/* The current page stays dark even when its text is wrapped (case numbers are, for direction). */
+nav.aegov-breadcrumb [aria-current="page"] span {
+  color: inherit;
+}
+
 @layer components {
   .surface {
     @apply rounded-xl border border-aeblack-100 bg-whitely-50;
   }
+  /* In dark mode the design system maps aeblack-500 to a mid grey that is under 4:1 on the dark
+     surfaces; secondary text uses the next lighter step there. */
   .muted {
-    @apply text-aeblack-500;
+    @apply text-aeblack-500 dark:text-aeblack-600;
   }
   .flag-bar {
     background: linear-gradient(90deg, var(--color-aered-600) 0 25%, var(--color-aegreen-600) 25% 50%, #ffffff 50% 75%, var(--color-night-900) 75%);

@@ -158,7 +158,7 @@ export const Transcript: React.FC<{ text: string; standName?: string | null }> =
     <div className="mt-2 space-y-3 rounded-xl bg-aeblack-50 p-4">
       {turns.map((m, i) => (
         <div key={i}>
-          <div className={m![1] === standName ? "text-xs font-semibold text-primary-700" : "text-xs font-semibold text-techblue-700"}>{m![1]}</div>
+          <div className={m![1] === standName ? "text-xs font-semibold text-primary-700" : "text-xs font-semibold text-techblue-700 dark:text-techblue-300"}>{m![1]}</div>
           <p className="text-sm leading-relaxed" dir="auto">{m![2]}</p>
         </div>
       ))}

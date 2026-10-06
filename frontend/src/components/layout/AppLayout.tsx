@@ -83,7 +83,7 @@ export const AppLayout: React.FC = () => {
         if (!items.length) return null;
         return (
           <div key={section.title}>
-            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">{section.title}</div>
+            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">{section.title}</div>
             <ul className="space-y-0.5">
               {items.map((item) => (
                 <li key={item.to}>
@@ -94,7 +94,7 @@ export const AppLayout: React.FC = () => {
                       cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition [&_svg]:size-[18px]",
                         isActive
-                          ? "bg-primary-600 text-white shadow-sm"
+                          ? "bg-gold-600 text-white shadow-sm"
                           : "text-white/70 hover:bg-white/8 hover:text-white"
                       )
                     }
@@ -130,7 +130,7 @@ export const AppLayout: React.FC = () => {
         {t("Skip to content", "تخطَّ إلى المحتوى")}
       </a>
 
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 lg:block no-print">{sidebar}</aside>
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 lg:block no-print" aria-label={t("Main menu", "القائمة الرئيسية")}>{sidebar}</aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">

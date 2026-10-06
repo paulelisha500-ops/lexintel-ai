@@ -63,7 +63,7 @@ export default function System() {
                   </div>
                   {!s.available && (
                     <div className="mt-3 rounded-lg bg-aeblack-50 p-3 text-xs">
-                      {s.error && <div className="font-mono text-aered-700">{s.error}</div>}
+                      {s.error && <div className="font-mono text-aered-700 dark:text-aered-400">{s.error}</div>}
                       {fallback && <div className="mt-1">{t("Meanwhile: ", "في الأثناء: ")}{fallback}</div>}
                     </div>
                   )}
@@ -154,7 +154,7 @@ const AIModels: React.FC<{ models: AIModelStatus[]; memory?: MachineMemory; onCh
                   {m.queue ? <span>{t(`${m.queue} draft(s) in progress`, `${m.queue} مسودة قيد الكتابة`)}</span> : null}
                   {m.examples != null && <span>{t(`${m.examples} built-in examples`, `${m.examples} مثالاً مدمجاً`)}{m.learned_examples != null && t(` + ${m.learned_examples} staff decisions`, ` + ${m.learned_examples} من قرارات الموظفين`)}</span>}
                 </div>
-                {m.error && <div className="mt-1 font-mono text-xs text-aered-700">{m.error}</div>}
+                {m.error && <div className="mt-1 font-mono text-xs text-aered-700 dark:text-aered-400">{m.error}</div>}
               </div>
               {m.key === "writer" && m.enabled !== false && (
                 <div className="flex gap-2">

@@ -98,7 +98,7 @@ export const OverviewTab: React.FC<{ c: CaseDetailResponse; onEdit: () => void }
                 {Object.entries(c.priority.factors).map(([k, v]) => (
                   <li key={k} className="flex items-center justify-between gap-2 text-sm">
                     <span className={v === 0 ? "muted" : ""}>{lang === "ar" ? FACTOR_LABELS[k]?.[1] : FACTOR_LABELS[k]?.[0] ?? k}</span>
-                    <span className={`tabular-nums ${v > 0 ? "text-aered-700" : v < 0 ? "text-techblue-700" : "muted"}`}>
+                    <span className={`tabular-nums ${v > 0 ? "text-aered-700 dark:text-aered-400" : v < 0 ? "text-techblue-700 dark:text-techblue-300" : "muted"}`}>
                       {v > 0 ? "+" : ""}{v.toFixed(2)}
                     </span>
                   </li>

@@ -464,7 +464,7 @@ export default function Stand() {
                 <div className="mt-4 min-h-24 space-y-3" aria-live="polite">
                   {turns.length ? turns.map((turn, i) => (
                     <div key={i} className="lex-fade-in">
-                      <div className={cn("text-xs font-semibold", turn.speaker === standName ? "text-primary-700" : "text-techblue-700")}>{turn.speaker}</div>
+                      <div className={cn("text-xs font-semibold", turn.speaker === standName ? "text-primary-700" : "text-techblue-700 dark:text-techblue-300")}>{turn.speaker}</div>
                       <p className="whitespace-pre-wrap text-base leading-relaxed" dir="auto">{turn.text}</p>
                     </div>
                   )) : (
@@ -628,7 +628,7 @@ const SpeakerPicker: React.FC<{ current: string; standName: string; onChange: (k
           <button key={o.key} type="button" role="radio" aria-checked={current === o.key} onClick={() => onChange(o.key)}
             className={cn(
               "inline-flex flex-nowrap items-center justify-start gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors duration-150",
-              current === o.key ? "border-primary-600 bg-primary-600 text-white shadow-sm" : "border-aeblack-200 hover:border-primary-400 hover:bg-primary-50",
+              current === o.key ? "border-gold-600 bg-gold-600 text-white shadow-sm" : "border-aeblack-200 hover:border-primary-400 hover:bg-primary-50",
             )}>
             <kbd className={cn("rounded px-1 text-[10px] font-semibold", current === o.key ? "bg-white/20" : "bg-aeblack-100 text-aeblack-600")}>{i + 1}</kbd>
             <span className="max-w-[14rem] truncate">{o.label}</span>

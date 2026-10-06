@@ -44,7 +44,7 @@ export default function Users() {
     { key: "status", header: t("Status", "الحالة"), sortValue: (u) => (u.is_active ? 1 : 0), cell: (u) => <Badge tone={u.is_active ? "success" : "error"}>{u.is_active ? t("Active", "نشط") : t("Disabled", "معطّل")}</Badge> },
     { key: "login", header: t("Last sign-in", "آخر دخول"), hideOnMobile: true, sortValue: (u) => u.last_login_at ?? "", cell: (u) => (u.last_login_at ? fmtAgo(u.last_login_at, lang) : <span className="muted">{t("Never", "لم يسجل الدخول")}</span>) },
     { key: "created", header: t("Created", "أُنشئ"), hideOnMobile: true, cell: (u) => fmtDate(u.created_at, lang) },
-    { key: "actions", header: "", cell: (u) => (
+    { key: "actions", header: <span className="sr-only">{t("Actions", "إجراءات")}</span>, cell: (u) => (
       <Menu trigger={<Button variant="ghost" size="xs" iconOnly aria-label={t("Actions", "إجراءات")}><MoreHorizontal className="size-4" /></Button>}
         items={[
           { label: t("Edit", "تعديل"), icon: <Pencil className="size-4" />, onSelect: () => setEditing(u) },

@@ -68,7 +68,7 @@ export default function LibraryPage() {
         {d.error && <div className={`mt-1 max-w-xs text-xs ${d.status === "failed" ? "text-aered-600" : "muted"}`}>{d.error}</div>}
       </div>
     ) },
-    { key: "actions", header: "", cell: (d) => (
+    { key: "actions", header: <span className="sr-only">{t("Actions", "إجراءات")}</span>, cell: (d) => (
       <Menu trigger={<Button variant="ghost" size="xs" iconOnly aria-label={t("Actions", "إجراءات")}><MoreHorizontal className="size-4" /></Button>}
         items={[
           ...(d.source_url ? [{ label: t("Official source", "المصدر الرسمي"), icon: <ExternalLink className="size-4" />, onSelect: () => window.open(d.source_url!, "_blank", "noopener") }] : []),
