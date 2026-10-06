@@ -135,6 +135,20 @@ export default function Stand() {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, changeSpeaker]);
 
+  // While a statement is being transcribed, re-check the list so its status updates by itself.
+  // Only the list is taken from the check, so it can't undo a call to the stand made meanwhile.
+  const sessionId = state?.session.id;
+  const transcribing = !!state?.statements.some((s) => ["queued", "processing"].includes(s.transcript_status));
+  useEffect(() => {
+    if (!sessionId || !transcribing) return;
+    const timer = window.setInterval(() => {
+      api.get<CourtroomState>(`/courtroom/sessions/${sessionId}`)
+        .then((fresh) => setState((prev) => (prev ? { ...prev, statements: fresh.statements } : fresh)))
+        .catch(() => {});
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [sessionId, transcribing]);
+
   const load = useCallback(async () => {
     try {
       const h = await api.get<Hearing>(`/hearings/${hearingId}`);
@@ -280,12 +294,14 @@ export default function Stand() {
         const rec = new MediaRecorder(audioOnly, chunkMime ? { mimeType: chunkMime } : undefined);
         const chunkParts: Blob[] = [];
         // The chunk belongs to whoever was speaking when it started; a speaker change cuts it.
-        const speaker = speakerNameRef.current(speakerRef.current);
+        // The name is looked up when the chunk is sent: the first chunk starts before the page
+        // has drawn the person who was just called.
+        const speakerKey = speakerRef.current;
         const offset = (Date.now() - recordStartRef.current) / 1000;
         rec.ondataavailable = (e) => e.data.size && chunkParts.push(e.data);
         rec.onstop = () => {
           window.clearTimeout(timer);
-          sendChunk(new Blob(chunkParts, { type: rec.mimeType }), seq++, rec.mimeType || "audio/webm", speaker, offset);
+          sendChunk(new Blob(chunkParts, { type: rec.mimeType }), seq++, rec.mimeType || "audio/webm", speakerNameRef.current(speakerKey), offset);
           cycle();
         };
         rec.start();

@@ -32,7 +32,7 @@ export default function CourtroomSelect() {
                 {active.map((h) => (
                   <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
                     <div className="w-16 font-heading text-xl font-bold tabular-nums" dir="ltr">{fmtTime(h.scheduled_at, lang)}</div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 basis-56">
                       <div className="font-medium">{h.case_title}</div>
                       <div className="text-xs muted"><span dir="ltr">{h.case_number}</span> · {h.courtroom ?? "—"} · {h.judge_name ?? "—"}</div>
                     </div>

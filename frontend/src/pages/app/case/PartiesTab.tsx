@@ -50,7 +50,7 @@ export const PartiesTab: React.FC<{ c: CaseDetailResponse }> = ({ c }) => {
           {c.parties.map(({ person, role, added_at }) => (
             <li key={person.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
               <Avatar name={person.full_name} size="base" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-56">
                 <div className="font-medium">{person.full_name}</div>
                 <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs muted">
                   {person.emirates_id_last4 && <span>{t("Emirates ID", "الهوية")} •••• {person.emirates_id_last4}</span>}

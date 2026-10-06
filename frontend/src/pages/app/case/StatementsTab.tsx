@@ -42,7 +42,7 @@ export const StatementsTab: React.FC<{ c: CaseDetailResponse }> = ({ c }) => {
             return (
               <li key={s.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
                 <div className="grid size-10 place-items-center rounded-full bg-primary-50 font-bold text-primary-700">{s.sequence_number}</div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-56">
                   <div className="font-medium">{s.person_name ?? t("Unnamed", "بدون اسم")} · {label.hearingRole(s.role, lang)}</div>
                   <div className="text-xs muted">
                     {fmtDateTime(s.started_at, lang)}{seconds != null && ` · ${fmtDuration(seconds)}`} · {t("Identity: manually confirmed", "الهوية: تأكيد يدوي من الكاتب")}

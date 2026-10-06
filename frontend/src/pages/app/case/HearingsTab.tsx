@@ -29,7 +29,7 @@ export const HearingsTab: React.FC<{ c: CaseDetailResponse }> = ({ c }) => {
         <ul className="divide-y divide-aeblack-50">
           {sorted.map((h) => (
             <li key={h.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-56">
                 <div className="font-medium">{fmtDateTime(h.scheduled_at, lang)} · {h.duration_minutes} {t("min", "د")}</div>
                 <div className="text-sm muted">{[h.hearing_type, h.courtroom].filter(Boolean).join(" · ") || "—"}</div>
                 {h.notes && <div className="mt-1 text-xs muted">{h.notes}</div>}
