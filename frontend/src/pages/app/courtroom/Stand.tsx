@@ -102,6 +102,9 @@ export default function Stand() {
   const active = state?.active_statement ?? null;
   activeIdRef.current = active?.id ?? null;
   const sttAvailable = state?.stt.available ?? false;
+  // The clerk types the transcript when there is no speech-to-text or no microphone.
+  const typing = !sttAvailable || !!mediaError;
+  const typed = manualTranscript.trim() ? manualTranscript : null;
   const standName = active?.person_name ?? t("Person at the stand", "الشخص على المنصة");
   const speakerName = useCallback((key: string) => {
     if (key === "stand") return standName;
@@ -458,9 +461,9 @@ export default function Stand() {
           </section>
 
           {active && (
-            <Card title={t("Live transcript", "التفريغ المباشر")} subtitle={sttAvailable ? t("Updates every few seconds. Mark who is speaking so every line is attributed; you can correct it at step-down.", "يتحدّث كل بضع ثوانٍ. حدّد المتحدث لتُنسب كل عبارة إلى قائلها، ويمكن التصحيح عند الانصراف.") : undefined}>
+            <Card title={t("Live transcript", "التفريغ المباشر")} subtitle={!typing ? t("Updates every few seconds. Mark who is speaking so every line is attributed; you can correct it at step-down.", "يتحدّث كل بضع ثوانٍ. حدّد المتحدث لتُنسب كل عبارة إلى قائلها، ويمكن التصحيح عند الانصراف.") : undefined}>
               <SpeakerPicker current={speakerKey} standName={standName} onChange={changeSpeaker} />
-              {sttAvailable ? (
+              {!typing ? (
                 <div className="mt-4 min-h-24 space-y-3" aria-live="polite">
                   {turns.length ? turns.map((turn, i) => (
                     <div key={i} className="lex-fade-in">
@@ -506,7 +509,10 @@ export default function Stand() {
       </div>
 
       <CallToStandModal open={callOpen} onClose={() => setCallOpen(false)} sessionId={state.session.id} caseId={hearing.case_id} onCalled={onCalled} />
-      <ReviewModal open={reviewOpen} onClose={() => setReviewOpen(false)} initial={sttAvailable ? liveText : manualTranscript} onConfirm={finishStatement} />
+      {/* The server already holds the live transcript, so it is sent only when the clerk corrected it;
+          a typed transcript exists only here, so it is always sent. */}
+      <ReviewModal open={reviewOpen} onClose={() => setReviewOpen(false)} initial={(typing && typed) || liveText}
+        onConfirm={(corrected) => finishStatement(corrected ?? (typing ? typed : null))} />
       <StatementDrawer statement={openStatement} onClose={() => setOpenStatement(null)} />
       {confirmEl}
     </div>
