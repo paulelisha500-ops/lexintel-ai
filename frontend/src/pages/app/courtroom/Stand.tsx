@@ -135,33 +135,44 @@ export default function Stand() {
     return () => window.removeEventListener("keydown", onKey);
   }, [active, changeSpeaker]);
 
+  // Every action at the stand (opening it, a call, step-down, closing) bumps the version. A list
+  // refresh that started before the action is out of date and is dropped: it could otherwise bring
+  // back a list without the statement that was just closed.
+  const stateVersionRef = useRef(0);
+  const applyState = useCallback((s: CourtroomState) => {
+    stateVersionRef.current++;
+    setState(s);
+  }, []);
+  /** Re-reads the list of statements only, so a refresh can't undo a call to the stand made meanwhile. */
+  const refreshStatements = useCallback(async (sessionId: string) => {
+    const version = stateVersionRef.current;
+    const fresh = await api.get<CourtroomState>(`/courtroom/sessions/${sessionId}`);
+    if (version !== stateVersionRef.current) return;
+    setState((prev) => (prev ? { ...prev, statements: fresh.statements } : fresh));
+  }, []);
+
   // While a statement is being transcribed, re-check the list so its status updates by itself.
-  // Only the list is taken from the check, so it can't undo a call to the stand made meanwhile.
   const sessionId = state?.session.id;
   const transcribing = !!state?.statements.some((s) => ["queued", "processing"].includes(s.transcript_status));
   useEffect(() => {
     if (!sessionId || !transcribing) return;
-    const timer = window.setInterval(() => {
-      api.get<CourtroomState>(`/courtroom/sessions/${sessionId}`)
-        .then((fresh) => setState((prev) => (prev ? { ...prev, statements: fresh.statements } : fresh)))
-        .catch(() => {});
-    }, 5000);
+    const timer = window.setInterval(() => refreshStatements(sessionId).catch(() => {}), 5000);
     return () => window.clearInterval(timer);
-  }, [sessionId, transcribing]);
+  }, [sessionId, transcribing, refreshStatements]);
 
   const load = useCallback(async () => {
     try {
       const h = await api.get<Hearing>(`/hearings/${hearingId}`);
       setHearing(h);
       const s = await api.post<CourtroomState>(`/courtroom/hearings/${hearingId}/session`);
-      setState(s);
+      applyState(s);
       if (s.active_statement?.live_segments?.length) {
         setSegments(s.active_statement.live_segments.map((x) => ({ seq: x.seq, text: x.text, speaker: x.speaker || s.active_statement!.person_name || "" })));
       }
     } catch (e) {
       setLoadError(e);
     }
-  }, [hearingId]);
+  }, [hearingId, applyState]);
 
   useEffect(() => {
     load();
@@ -320,7 +331,7 @@ export default function Stand() {
   };
 
   const onCalled = async (s: CourtroomState) => {
-    setState(s);
+    applyState(s);
     setSegments([]);
     setManualTranscript("");
     speakerRef.current = "stand";
@@ -336,7 +347,7 @@ export default function Stand() {
     await chunkQueue.current;
     try {
       const s = await api.post<CourtroomState>(`/courtroom/sessions/${state.session.id}/step-down`, transcript === null ? {} : { transcript }, { retry: false });
-      setState(s);
+      applyState(s);
       setSegments([]);
       setReviewOpen(false);
       toast.success(t("Statement closed", "أُغلقت الإفادة"));
@@ -345,7 +356,7 @@ export default function Stand() {
         form.append("recording", blob, `statement-${statementId}.${extFor(blob.type)}`);
         setUploadProgress(0);
         uploadWithProgress(`/courtroom/statements/${statementId}/recording`, form, setUploadProgress)
-          .then(() => { toast.success(t("Recording saved", "تم حفظ التسجيل")); api.get<CourtroomState>(`/courtroom/sessions/${state.session.id}`).then(setState); })
+          .then(() => { toast.success(t("Recording saved", "تم حفظ التسجيل")); refreshStatements(state.session.id).catch(() => {}); })
           .catch((e) => toast.error(t("Recording upload failed: ", "فشل رفع التسجيل: ") + (e instanceof ApiError ? e.message : String(e))))
           .finally(() => setUploadProgress(null));
       }
@@ -360,7 +371,7 @@ export default function Stand() {
     const ok = await confirm({ title: t("Close this session?", "إغلاق هذه الجلسة؟"), body: t("The hearing will be marked as completed.", "ستُعلَّم الجلسة كمنتهية."), confirmLabel: t("Close session", "إغلاق الجلسة") });
     if (!ok) return;
     try {
-      setState(await api.post<CourtroomState>(`/courtroom/sessions/${state.session.id}/close`));
+      applyState(await api.post<CourtroomState>(`/courtroom/sessions/${state.session.id}/close`));
       if (hearing) invalidate(["hearings"], ["case", hearing.case_id]);
       toast.success(t("Session closed", "أُغلقت الجلسة"));
     } catch (e) {
@@ -516,16 +527,25 @@ const CallToStandModal: React.FC<{ open: boolean; onClose: () => void; sessionId
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Each call starts afresh: a role picked for an earlier party must not carry over to the next person.
   useEffect(() => {
     if (!open) return;
     setError(null);
     setConfirmed(false);
+    setPersonId("");
+    setRole("witness");
   }, [open]);
 
   useEffect(() => {
     const p = parties.data?.find((x) => x.person.id === personId);
     if (p) setRole(p.role);
   }, [personId, parties.data]);
+
+  /** The role follows the chosen party; someone else starts as a witness. */
+  const changeMode = (m: string) => {
+    setMode(m);
+    setRole((m === "party" && parties.data?.find((x) => x.person.id === personId)?.role) || "witness");
+  };
 
   const call = async () => {
     setError(null);
@@ -552,7 +572,7 @@ const CallToStandModal: React.FC<{ open: boolean; onClose: () => void; sessionId
     <Modal open={open} onOpenChange={(o) => !o && onClose()} title={t("Call to the stand", "استدعاء إلى المنصة")}
       footer={<><Button variant="outline" onClick={onClose}>{t("Cancel", "إلغاء")}</Button><Button loading={saving} icon={<Mic className="size-4" />} onClick={call}>{t("Confirm & start recording", "تأكيد وبدء التسجيل")}</Button></>}>
       <div className="space-y-5">
-        <Segmented value={mode} onChange={setMode} options={[{ value: "party", label: t("Party to the case", "طرف في القضية") }, { value: "new", label: t("Someone else", "شخص آخر") }]} />
+        <Segmented value={mode} onChange={changeMode} options={[{ value: "party", label: t("Party to the case", "طرف في القضية") }, { value: "new", label: t("Someone else", "شخص آخر") }]} />
         {mode === "party" ? (
           <Select label={t("Person", "الشخص")} value={personId} onChange={(e) => setPersonId(e.target.value)}
             options={(parties.data ?? []).map((p) => ({ value: p.person.id, label: `${p.person.full_name} (${label.hearingRole(p.role, lang)})` }))}
