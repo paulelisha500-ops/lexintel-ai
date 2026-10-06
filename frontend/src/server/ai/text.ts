@@ -61,6 +61,31 @@ export function splitSentences(text: string, limit = 600): string[] {
   return out.slice(0, limit);
 }
 
+const TURN = /^([^:\n]{2,60}):\s+(.+)$/;
+
+/** A dialogue as composed at the stand ("Speaker: words" on every line) as turns; null for any other text. */
+export function dialogueTurns(text: string): { speaker: string; text: string }[] | null {
+  const lines = (text || "").split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  const turns = lines.map((l) => l.match(TURN));
+  if (lines.length < 2 || turns.some((m) => !m)) return null;
+  return turns.map((m) => ({ speaker: m![1].trim(), text: m![2] }));
+}
+
+/**
+ * Sentences with who said them. In a dialogue each sentence keeps its speaker (and the
+ * "Speaker:" label stays out of the quoted words); any other text has no speaker.
+ */
+export function attributedSentences(text: string, limit = 600): { text: string; speaker: string | null }[] {
+  const turns = dialogueTurns(text);
+  if (!turns) return splitSentences(text, limit).map((s) => ({ text: s, speaker: null }));
+  const out: { text: string; speaker: string | null }[] = [];
+  for (const turn of turns) {
+    for (const s of splitSentences(turn.text, limit)) out.push({ text: s, speaker: turn.speaker });
+    if (out.length >= limit) break;
+  }
+  return out.slice(0, limit);
+}
+
 export function stripMarkdown(text: string): string {
   const cleaned = (text || "").replace(/(\*\*|__|`+|~~)/g, "").replace(/^\s{0,3}(?:#{1,6}\s+|[-*+]\s+|\d{1,2}[.)]\s+)/gm, "");
   return cleaned.replace(/\n{3,}/g, "\n\n").trim();

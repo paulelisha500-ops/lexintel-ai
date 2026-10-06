@@ -59,6 +59,33 @@ def split_sentences(text: str, limit: int = 600) -> list[str]:
     return out[:limit]
 
 
+_TURN = re.compile(r"^([^:\n]{2,60}):\s+(.+)$")
+
+
+def dialogue_turns(text: str) -> list[tuple[str, str]] | None:
+    """A dialogue as composed at the stand ("Speaker: words" on every line) as
+    (speaker, words) turns; None for any other text."""
+    lines = [line.strip() for line in (text or "").split("\n") if line.strip()]
+    turns = [_TURN.match(line) for line in lines]
+    if len(lines) < 2 or not all(turns):
+        return None
+    return [(m.group(1).strip(), m.group(2)) for m in turns]
+
+
+def attributed_sentences(text: str, limit: int = 600) -> list[tuple[str, str | None]]:
+    """(sentence, speaker) pairs. In a dialogue each sentence keeps its speaker (and the
+    "Speaker:" label stays out of the quoted words); any other text has no speaker."""
+    turns = dialogue_turns(text)
+    if turns is None:
+        return [(s, None) for s in split_sentences(text, limit)]
+    out: list[tuple[str, str | None]] = []
+    for speaker, words in turns:
+        out.extend((s, speaker) for s in split_sentences(words, limit))
+        if len(out) >= limit:
+            break
+    return out[:limit]
+
+
 _MD_MARKS = re.compile(r"(\*\*|__|`+|~~)")
 _MD_LINE_START = re.compile(r"^\s{0,3}(?:#{1,6}\s+|[-*+]\s+|\d{1,2}[.)]\s+)", re.MULTILINE)
 

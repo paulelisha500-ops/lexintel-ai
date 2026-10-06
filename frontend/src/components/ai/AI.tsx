@@ -118,6 +118,9 @@ export const GroundingLegend: React.FC<{ grounding: Grounding }> = ({ grounding 
 };
 
 /** Original sentences picked from a document (never paraphrased). */
+/** Who said a quoted sentence, shown before it (dialogue transcripts only). */
+const Said: React.FC<{ by?: string | null }> = ({ by }) => (by ? <span className="font-semibold">{by}: </span> : null);
+
 export const QuotedSummary: React.FC<{ summary: ExtractiveSummary | null | undefined; className?: string }> = ({ summary, className }) => {
   const { t } = usePrefs();
   if (!summary?.sentences?.length) return null;
@@ -128,7 +131,7 @@ export const QuotedSummary: React.FC<{ summary: ExtractiveSummary | null | undef
         {summary.method === "semantic" && <span className="font-normal">· {t("picked by meaning", "مختارة حسب المعنى")}</span>}
       </div>
       <ul className="space-y-1 text-sm" dir="auto">
-        {summary.sentences.map((s) => <li key={s.index} className="leading-relaxed">“{s.text}”</li>)}
+        {summary.sentences.map((s) => <li key={s.index} className="leading-relaxed"><Said by={s.speaker} />“{s.text}”</li>)}
       </ul>
     </div>
   );
@@ -147,7 +150,7 @@ export const OffenceMentions: React.FC<{ mentions: OffenceMention[] | undefined;
         {mentions.map((m) => (
           <li key={m.offence} className="text-sm">
             <Badge tone="neutral">{lang === "ar" ? m.label_ar : m.label_en}</Badge>{" "}
-            <span className="muted" dir="auto">“{m.sentence}”</span>
+            <span className="muted" dir="auto"><Said by={m.speaker} />“{m.sentence}”</span>
           </li>
         ))}
       </ul>

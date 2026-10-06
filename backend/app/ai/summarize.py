@@ -17,12 +17,13 @@ from collections import Counter
 import numpy as np
 
 from app.ai import embeddings
-from app.ai.text import content_words, split_sentences, word_overlap
+from app.ai.text import attributed_sentences, content_words, split_sentences, word_overlap
 
 
 def extractive_summary(text: str, max_sentences: int = 5, max_chars: int = 1400, wait_for_model: bool = True) -> dict:
     """`wait_for_model=False` (request handlers): use word frequency rather than wait for a cold model to load."""
-    sentences = split_sentences(text, limit=400)
+    parts = attributed_sentences(text, limit=400)
+    sentences = [s for s, _ in parts]
     total_chars = sum(len(s) for s in sentences) or 1
     if not sentences:
         return {"sentences": [], "method": "none", "coverage": 0.0}
@@ -42,7 +43,10 @@ def extractive_summary(text: str, max_sentences: int = 5, max_chars: int = 1400,
     for i in sorted(picked):
         if used + len(sentences[i]) > max_chars and chosen:
             break
-        chosen.append({"index": i, "text": sentences[i], "rank": rank[i]})
+        entry = {"index": i, "text": sentences[i], "rank": rank[i]}
+        if parts[i][1]:
+            entry["speaker"] = parts[i][1]  # who said it, in a dialogue
+        chosen.append(entry)
         used += len(sentences[i])
     return {"sentences": chosen, "method": method, "coverage": round(used / total_chars, 2),
             "sentence_count": len(sentences)}

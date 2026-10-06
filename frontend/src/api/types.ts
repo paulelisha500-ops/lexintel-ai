@@ -162,6 +162,8 @@ export interface OffenceMention {
   label_ar: string;
   sentence: string;
   score: number;
+  /** Who said the sentence, when the text is a dialogue. */
+  speaker?: string | null;
 }
 
 export interface LegalReference {
@@ -172,7 +174,8 @@ export interface LegalReference {
 }
 
 export interface ExtractiveSummary {
-  sentences: { index: number; text: string }[];
+  /** `speaker`: who said the sentence, when the text is a dialogue. */
+  sentences: { index: number; text: string; speaker?: string | null }[];
   method: "semantic" | "word-frequency" | "all" | "none";
   coverage: number;
   sentence_count?: number;
