@@ -10,8 +10,16 @@ _LATIN = re.compile(r"[A-Za-z]")
 # sometimes drift into them mid-sentence.
 _FOREIGN_SCRIPT = re.compile(r"[぀-ヿ㐀-䶿一-鿿가-힯Ѐ-ӿ฀-๿]")
 
-# Split after sentence-final punctuation (Latin and Arabic) or at line breaks.
-_SPLIT = re.compile(r"(?<=[.!?؟۔])\s+|\n+")
+# Split after sentence-final punctuation (Latin and Arabic) or at line breaks...
+_LINES = re.compile(r"\n+")
+_SENTENCE_END = re.compile(r"(?<=[.!?؟۔])\s+")
+# ...but not after an abbreviation: "Mr. Omar Farouk", "H.H. Sh. Mohammed", "Law No. 31 of 2021",
+# "Art. 5", "e.g. a lease". Titles and initials join a following capital, numbering words a
+# following number.
+_BEFORE_NAME = re.compile(r"(?:^|[\s(])(?:Mr|Mrs|Ms|Dr|Prof|Hon|Sh|Capt|Lt|Col|Gen|Sgt|[A-Z])\.$")
+_BEFORE_NUMBER = re.compile(r"(?:^|[\s(])(?:No|Nos|Art|Arts|Para|Sec|Cl|Vol|Ch|p|pp)\.$", re.IGNORECASE)
+_ALWAYS = re.compile(r"(?:^|[\s(])(?:e\.g|i\.e|cf|vs|viz)\.$", re.IGNORECASE)
+_NUMBER_START = re.compile(r"^\(?[0-9٠-٩]")
 _WS = re.compile(r"[ \t ]+")
 _WORD = re.compile(r"[\w؀-ۿ]{3,}", re.UNICODE)
 
@@ -40,10 +48,32 @@ def has_foreign_script(text: str) -> bool:
     return bool(_FOREIGN_SCRIPT.search(text))
 
 
+def _joins(before: str, following: str) -> bool:
+    return bool(_ALWAYS.search(before)
+                or (_BEFORE_NAME.search(before) and following[:1].isupper())
+                or (_BEFORE_NUMBER.search(before) and _NUMBER_START.match(following)))
+
+
+def _raw_sentences(text: str) -> list[str]:
+    """Split at line breaks and after sentence-final punctuation, but not after an abbreviation."""
+    out: list[str] = []
+    for line in _LINES.split(text):
+        current = ""
+        for piece in _SENTENCE_END.split(line):
+            if current and not _joins(current, piece):
+                out.append(current)
+                current = piece
+            else:
+                current = f"{current} {piece}" if current else piece
+        if current:
+            out.append(current)
+    return out
+
+
 def split_sentences(text: str, limit: int = 600) -> list[str]:
     """Sentences of 12-400 characters; overlong ones are cut at clause boundaries."""
     out: list[str] = []
-    for raw in _SPLIT.split(text or ""):
+    for raw in _raw_sentences(text or ""):
         sentence = _WS.sub(" ", raw).strip(" -•*‏‎")
         if len(sentence) < _MIN_SENTENCE:
             continue

@@ -9,7 +9,7 @@ import {
   audit, CASE_BUILDERS, CASE_EDITORS, HttpError, isUuid, notFoundUnlessUuid, nowISO, rateHit, requireRole, STAFF, uuid,
 } from "../core";
 import { bool, has, isoDate, oneOf, plausibleDeadline, route, Sse, Status, str } from "../router";
-import { db, save, type CaseRow } from "../store";
+import { db, save, type CaseRow, type RulingRow } from "../store";
 import {
   CASE_STATUSES, CASE_TYPES, caseOr404, casesForPerson, caseView, HEARING_ROLES, hearingView, ilike, nextCaseNumber,
   partiesOf, personView, statementsForCase, statementView,
@@ -85,7 +85,7 @@ route("GET", "/cases/{case_id}", (req) => {
     }),
     evidence_summary: { total: evidence.length, pending_review: evidence.filter((e) => e.review_status === "pending_review").length,
                         processing: evidence.filter((e) => ["queued", "processing"].includes(e.processing_status)).length },
-    ruling: ruling ?? null,
+    ruling: ruling ? rulingView(ruling) : null,
     assigned_judge: judge ? { id: judge.id, full_name: judge.full_name } : null,
     research_note_count: db().notes.filter((n) => n.case_id === c.id).length,
     statement_count: statementsForCase(c.id).length,
@@ -460,9 +460,13 @@ route("GET", "/cases/{case_id}/ruling", (req) => {
   requireRole(req.user(), STAFF);
   const c = caseOr404(req.params.case_id);
   const r = db().rulings.find((x) => x.case_id === c.id);
-  if (!r) return null;
-  return { ...r, entered_by_name: db().users.find((u) => u.id === r.entered_by)?.full_name ?? null };
+  return r ? rulingView(r) : null;
 });
+
+/** The ruling with the name of the judge who entered it. */
+function rulingView(r: RulingRow) {
+  return { ...r, entered_by_name: db().users.find((u) => u.id === r.entered_by)?.full_name ?? null };
+}
 
 route("POST", "/cases/{case_id}/ruling", (req) => {
   // Only a judge can enter a ruling, and it is always attributed to the signed-in judge.

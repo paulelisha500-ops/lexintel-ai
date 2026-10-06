@@ -3,7 +3,32 @@
 const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/g;
 const LATIN = /[A-Za-z]/g;
 const FOREIGN_SCRIPT = /[぀-ヿ㐀-䶿一-鿿가-힯Ѐ-ӿ฀-๿]/;
-const SPLIT = /(?<=[.!?؟۔])\s+|\n+/;
+const LINES = /\n+/;
+const SENTENCE_END = /(?<=[.!?؟۔])\s+/;
+// A full stop that ends an abbreviation rather than a sentence: "Mr. Omar Farouk", "H.H. Sh. Mohammed",
+// "Law No. 31 of 2021", "Art. 5", "e.g. a lease". Titles and initials join a following capital,
+// numbering words a following number. (Same rules as app/ai/text.py.)
+const BEFORE_NAME = /(?:^|[\s(])(?:Mr|Mrs|Ms|Dr|Prof|Hon|Sh|Capt|Lt|Col|Gen|Sgt|[A-Z])\.$/;
+const BEFORE_NUMBER = /(?:^|[\s(])(?:No|Nos|Art|Arts|Para|Sec|Cl|Vol|Ch|p|pp)\.$/i;
+const ALWAYS = /(?:^|[\s(])(?:e\.g|i\.e|cf|vs|viz)\.$/i;
+const joins = (before: string, next: string) =>
+  ALWAYS.test(before) || (BEFORE_NAME.test(before) && /^\p{Lu}/u.test(next)) || (BEFORE_NUMBER.test(before) && /^\(?[0-9٠-٩]/.test(next));
+
+/** Raw sentences: split at line breaks and after sentence-final punctuation, but not after an abbreviation. */
+function rawSentences(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split(LINES)) {
+    let current = "";
+    for (const piece of line.split(SENTENCE_END)) {
+      if (current && !joins(current, piece)) {
+        out.push(current);
+        current = piece;
+      } else current = current ? `${current} ${piece}` : piece;
+    }
+    if (current) out.push(current);
+  }
+  return out;
+}
 const WS = /[ \t ]+/g;
 const WORD = /[\p{L}\p{N}_؀-ۿ]{3,}/gu;
 const MAX_SENTENCE = 400;
@@ -45,8 +70,7 @@ function stripEdges(s: string): string {
 /** Sentences of 12-400 characters; overlong ones are cut at clause boundaries. */
 export function splitSentences(text: string, limit = 600): string[] {
   const out: string[] = [];
-  for (const raw of (text || "").split(SPLIT)) {
-    if (raw === undefined) continue;
+  for (const raw of rawSentences(text || "")) {
     let sentence = stripEdges(raw.replace(WS, " "));
     if (sentence.length < MIN_SENTENCE) continue;
     while (sentence.length > MAX_SENTENCE) {
