@@ -29,10 +29,15 @@ SENTENCES_PER_SOURCE = 2
 MIN_SENTENCES_FOR_DRAFT = 3
 
 
-def _best_sentences(summary_sentences: list[dict]) -> list[str]:
+def _said(text: str, speaker: str | None, own: str | None = None) -> str:
+    """A sentence someone else said in a statement (the judge's question) is marked with their name."""
+    return f"{speaker}: {text}" if speaker and speaker != own else text
+
+
+def _best_sentences(summary_sentences: list[dict], own: str | None = None) -> list[str]:
     """The strongest few sentences of a stored summary, kept in document order."""
     ranked = sorted(summary_sentences, key=lambda s: s.get("rank", s.get("index", 0)))[:SENTENCES_PER_SOURCE]
-    return [s["text"] for s in sorted(ranked, key=lambda s: s.get("index", 0))]
+    return [_said(s["text"], s.get("speaker"), own) for s in sorted(ranked, key=lambda s: s.get("index", 0))]
 
 
 def gather(db: Session, case: Case) -> dict:
@@ -41,10 +46,11 @@ def gather(db: Session, case: Case) -> dict:
     references: dict[str, dict] = {}
     notes: list[str] = []
 
-    def add_offences(mentions: list[dict], source: str) -> None:
+    def add_offences(mentions: list[dict], source: str, own: str | None = None) -> None:
         for m in mentions or []:
             entry = offences.setdefault(m["offence"], {"offence": m["offence"], "label_en": m["label_en"],
-                                                       "label_ar": m["label_ar"], "sources": [], "example": m["sentence"]})
+                                                       "label_ar": m["label_ar"], "sources": [],
+                                                       "example": _said(m["sentence"], m.get("speaker"), own)})
             if source not in entry["sources"]:
                 entry["sources"].append(source)
 
@@ -75,15 +81,15 @@ def gather(db: Session, case: Case) -> dict:
             notes.append("Statements could not be read just now.")
         for st in statements[:MAX_STATEMENTS]:
             label = f"Statement: {st.person_name or st.role.value}"
-            sentences = _best_sentences((st.summary or {}).get("sentences", []))
+            sentences = _best_sentences((st.summary or {}).get("sentences", []), st.person_name)
             if not sentences and (st.transcript or "").strip():
-                sentences = [s["text"] for s in extractive_summary(
+                sentences = [_said(s["text"], s.get("speaker"), st.person_name) for s in extractive_summary(
                     st.transcript, SENTENCES_PER_SOURCE, wait_for_model=False)["sentences"]]
             if sentences:
                 sections.append({"kind": "statement", "label": label,
                                  "label_ar": f"إفادة: {st.person_name or st.role.value}",
                                  "ref": f"statement:{st.id}", "sentences": sentences})
-            add_offences(st.offence_mentions, label)
+            add_offences(st.offence_mentions, label, st.person_name)
     else:
         notes.append("Statements are unavailable while MongoDB is down.")
 

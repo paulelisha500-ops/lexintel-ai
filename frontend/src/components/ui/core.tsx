@@ -280,12 +280,14 @@ export const EmptyState: React.FC<{
   description?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
-}> = ({ icon, title, description, action, className }) => (
+  /** 2 when the empty state is a page's main content (no section heading above it). */
+  level?: 2 | 3;
+}> = ({ icon, title, description, action, className, level = 3 }) => (
   <div className={cn("flex flex-col items-center justify-center text-center py-12 px-6", className)}>
     <div className="mb-4 grid size-14 place-items-center rounded-full bg-primary-50 text-primary-600">
       {icon ?? <Inbox className="size-7" aria-hidden />}
     </div>
-    <h3 className="text-lg font-semibold">{title}</h3>
+    {React.createElement(`h${level}`, { className: "text-lg font-semibold" }, title)}
     {description && <p className="mt-1 max-w-md text-sm muted">{description}</p>}
     {action && <div className="mt-5">{action}</div>}
   </div>

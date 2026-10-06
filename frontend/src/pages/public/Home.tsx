@@ -111,7 +111,7 @@ export default function Home() {
       {/* Modules */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="max-w-2xl">
-          <div className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-600">{t("The platform", "المنصة")}</div>
+          <div className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">{t("The platform", "المنصة")}</div>
           <h2 className="mt-2 font-heading text-3xl font-bold sm:text-4xl">
             {t("Every step of a case, connected", "كل مراحل القضية، مترابطة")}
           </h2>
@@ -152,7 +152,7 @@ export default function Home() {
             </div>
           </div>
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-600">{t("Explainable by design", "قابل للتفسير بطبيعته")}</div>
+            <div className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">{t("Explainable by design", "قابل للتفسير بطبيعته")}</div>
             <h2 className="mt-2 font-heading text-3xl font-bold">{t("A recommendation always shows its reasons", "كل توصية تُظهر أسبابها")}</h2>
             <ul className="mt-6 space-y-4">
               {[

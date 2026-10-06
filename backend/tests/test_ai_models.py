@@ -12,7 +12,7 @@ import time
 from app.agents import graph_orchestrator as go
 from app.ai import drafting, embeddings, grounding, offences, slots, summarize
 from app.ai.classifier import ComplaintClassifier
-from app.ai.text import has_foreign_script, language_of, split_sentences
+from app.ai.text import attributed_sentences, has_foreign_script, language_of, repeats_itself, split_sentences
 from app.core import llm
 
 failures = []
@@ -28,6 +28,15 @@ print("text helpers")
 check("splits Arabic and English sentences", len(split_sentences("First sentence here. الجملة الثانية هنا؟ Third one follows!")) == 3)
 check("language detection", language_of("ما هي مدة الإشعار؟") == "ar" and language_of("What is the notice?") == "en")
 check("foreign script detection", has_foreign_script("في法庭") and not has_foreign_script("court المحكمة"))
+check("no sentence break after Mr. or Law No.",
+      len(split_sentences("The store manager Mr. Omar Farouk reported it under Decree-Law No. 31 of 2021. The police came at once.")) == 2)
+check("dialogue sentences keep their speaker",
+      [sp for _, sp in attributed_sentences("Witness: I saw the car at the gate. It was a white van.\nJudge: Which way did the van go?")]
+      == ["Witness", "Witness", "Judge"])
+check("prose sentences have no speaker", attributed_sentences("Plain prose with no speakers at all here.")[0][1] is None)
+check("a transcript stuck in a loop is noticed, plain repetition is not",
+      repeats_itself("we were at the shop on the we were at the shop on the we were at the shop on the")
+      and not repeats_itself("I don't know. I don't know. I don't know."))
 
 print("complaint classifier (seed examples only)")
 clf = ComplaintClassifier(None)

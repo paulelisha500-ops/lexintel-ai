@@ -71,7 +71,7 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({ title, subtitle, table, 
     <section className={cn("surface p-5", className)}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold">{title}</h3>
+          <h2 className="font-semibold">{title}</h2>
           {subtitle && <p className="mt-0.5 text-sm muted">{subtitle}</p>}
         </div>
         <button

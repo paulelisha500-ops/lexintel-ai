@@ -159,7 +159,7 @@ def get_case(case_id: str, db: Session = Depends(get_db), user: UserAccount = De
             "pending_review": sum(1 for e in evidence if e.review_status == "pending_review"),
             "processing": sum(1 for e in evidence if e.processing_status in ("queued", "processing")),
         },
-        ruling=ruling.model_dump(mode="json") if ruling else None,
+        ruling=_ruling_data(db, ruling) if ruling else None,
         assigned_judge={"id": str(judge.id), "full_name": judge.full_name} if judge else None,
         research_note_count=len(ResearchNoteRepository(db).list_for_case(case.id)),
         statement_count=statements_count,
@@ -654,6 +654,11 @@ def get_ruling(case_id: str, db: Session = Depends(get_db), _user: UserAccount =
     ruling = RulingRepository(db).get(case.id)
     if not ruling:
         return None
+    return _ruling_data(db, ruling)
+
+
+def _ruling_data(db: Session, ruling) -> dict:
+    """The ruling with the name of the judge who entered it."""
     judge = UserRepository(db).get(ruling.entered_by)
     data = ruling.model_dump(mode="json")
     data["entered_by_name"] = judge.full_name if judge else None

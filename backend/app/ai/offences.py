@@ -21,7 +21,7 @@ import re
 import numpy as np
 
 from app.ai import embeddings
-from app.ai.text import split_sentences
+from app.ai.text import attributed_sentences
 
 # Each offence carries phrasings a real document might use (Arabic and
 # English) plus the words that must actually appear for a mid-confidence
@@ -180,8 +180,10 @@ def _has_word(haystack: str, key: str) -> bool:
 
 
 def offence_mentions(text: str, limit: int = 6) -> dict:
-    """{"mentions": [{offence, label_en, label_ar, sentence, score, support}], "method"}."""
-    sentences = split_sentences(text, limit=_MAX_SENTENCES)
+    """{"mentions": [{offence, label_en, label_ar, sentence, score, support, speaker?}], "method"}.
+    `speaker` (dialogue transcripts only) is who said the quoted sentence."""
+    parts = attributed_sentences(text, limit=_MAX_SENTENCES)
+    sentences = [s for s, _ in parts]
     if not sentences:
         return {"mentions": [], "method": "none"}
     keys, descriptions = [], []
@@ -215,9 +217,12 @@ def offence_mentions(text: str, limit: int = 6) -> dict:
             candidates = [i for i, sentence in enumerate(sentences) if _has_word(sentence.lower(), key)]
             if candidates:
                 s_idx = max(candidates, key=lambda i: scores[i])
-        mentions.append({"offence": key, "label_en": OFFENCES[key]["en"], "label_ar": OFFENCES[key]["ar"],
-                         "sentence": sentences[s_idx], "score": round(score, 2),
-                         "support": "wording+meaning" if supported else "meaning"})
+        mention = {"offence": key, "label_en": OFFENCES[key]["en"], "label_ar": OFFENCES[key]["ar"],
+                   "sentence": sentences[s_idx], "score": round(score, 2),
+                   "support": "wording+meaning" if supported else "meaning"}
+        if parts[s_idx][1]:
+            mention["speaker"] = parts[s_idx][1]
+        mentions.append(mention)
         if len(mentions) >= limit:
             break
     return {"mentions": mentions, "method": "semantic"}

@@ -6,7 +6,7 @@
  */
 import { OFFENCES } from "./data";
 import { dot, embed, meanVector, ModelUnavailable, ready } from "./models";
-import { contentWords, numericFigures, round, splitSentences, westernDigits, wordOverlap } from "./text";
+import { attributedSentences, contentWords, numericFigures, round, splitSentences, westernDigits, wordOverlap } from "./text";
 
 // ---------------------------------------------------------------------------
 // Legal references (patterns only -- nothing inferred)
@@ -39,7 +39,8 @@ export function legalReferences(text: string, limit = 40): LegalRef[] {
 // Offence mentions (by meaning, anchored by wording in the middle band)
 // ---------------------------------------------------------------------------
 
-export interface OffenceMention { offence: string; label_en: string; label_ar: string; sentence: string; score: number; support: string }
+/** `speaker`: who said the quoted sentence, when the text is a dialogue. */
+export interface OffenceMention { offence: string; label_en: string; label_ar: string; sentence: string; score: number; support: string; speaker?: string }
 
 // Meaning alone must be strong; a fair match also needs the offence's own words in the text.
 // (0.66 rather than the server's 0.60: the quantized browser model scores a little higher.)
@@ -49,7 +50,8 @@ const SUPPORTED = 0.45;
 const hasWord = (haystack: string, key: string) => OFFENCES[key].words.some((w) => haystack.includes(w));
 
 export async function offenceMentions(text: string, limit = 6, wait = true): Promise<{ mentions: OffenceMention[]; method: string }> {
-  const sentences = splitSentences(text, 250);
+  const parts = attributedSentences(text, 250);
+  const sentences = parts.map((p) => p.text);
   if (!sentences.length) return { mentions: [], method: "none" };
   const keys: string[] = [];
   const descriptions: string[] = [];
@@ -84,7 +86,8 @@ export async function offenceMentions(text: string, limit = 6, wait = true): Pro
       if (candidates.length) sIdx = candidates.reduce((a, b) => (scores[b] > scores[a] ? b : a));
     }
     mentions.push({ offence: key, label_en: OFFENCES[key].en, label_ar: OFFENCES[key].ar, sentence: sentences[sIdx],
-                    score: round(score), support: supported ? "wording+meaning" : "meaning" });
+                    score: round(score), support: supported ? "wording+meaning" : "meaning",
+                    ...(parts[sIdx].speaker ? { speaker: parts[sIdx].speaker! } : {}) });
     if (mentions.length >= limit) break;
   }
   return { mentions, method: "semantic" };
@@ -95,14 +98,16 @@ export async function offenceMentions(text: string, limit = 6, wait = true): Pro
 // ---------------------------------------------------------------------------
 
 export interface Summary {
-  sentences: { index: number; text: string; rank: number }[];
+  /** `speaker`: who said the sentence, when the text is a dialogue. */
+  sentences: { index: number; text: string; rank: number; speaker?: string }[];
   method: "semantic" | "word-frequency" | "none";
   coverage: number;
   sentence_count?: number;
 }
 
 export async function extractiveSummary(text: string, maxSentences = 5, maxChars = 1400, waitForModel = true): Promise<Summary> {
-  const sentences = splitSentences(text, 400);
+  const parts = attributedSentences(text, 400);
+  const sentences = parts.map((p) => p.text);
   const totalChars = sentences.reduce((a, s) => a + s.length, 0) || 1;
   if (!sentences.length) return { sentences: [], method: "none", coverage: 0 };
   let picked: number[];
@@ -121,7 +126,7 @@ export async function extractiveSummary(text: string, maxSentences = 5, maxChars
   let used = 0;
   for (const i of [...picked].sort((a, b) => a - b)) {
     if (used + sentences[i].length > maxChars && chosen.length) break;
-    chosen.push({ index: i, text: sentences[i], rank: rank.get(i)! });
+    chosen.push({ index: i, text: sentences[i], rank: rank.get(i)!, ...(parts[i].speaker ? { speaker: parts[i].speaker! } : {}) });
     used += sentences[i].length;
   }
   return { sentences: chosen, method, coverage: round(used / totalChars), sentence_count: sentences.length };

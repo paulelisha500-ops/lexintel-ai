@@ -3,7 +3,32 @@
 const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/g;
 const LATIN = /[A-Za-z]/g;
 const FOREIGN_SCRIPT = /[぀-ヿ㐀-䶿一-鿿가-힯Ѐ-ӿ฀-๿]/;
-const SPLIT = /(?<=[.!?؟۔])\s+|\n+/;
+const LINES = /\n+/;
+const SENTENCE_END = /(?<=[.!?؟۔])\s+/;
+// A full stop that ends an abbreviation rather than a sentence: "Mr. Omar Farouk", "H.H. Sh. Mohammed",
+// "Law No. 31 of 2021", "Art. 5", "e.g. a lease". Titles and initials join a following capital,
+// numbering words a following number. (Same rules as app/ai/text.py.)
+const BEFORE_NAME = /(?:^|[\s(])(?:Mr|Mrs|Ms|Dr|Prof|Hon|Sh|Capt|Lt|Col|Gen|Sgt|[A-Z])\.$/;
+const BEFORE_NUMBER = /(?:^|[\s(])(?:No|Nos|Art|Arts|Para|Sec|Cl|Vol|Ch|p|pp)\.$/i;
+const ALWAYS = /(?:^|[\s(])(?:e\.g|i\.e|cf|vs|viz)\.$/i;
+const joins = (before: string, next: string) =>
+  ALWAYS.test(before) || (BEFORE_NAME.test(before) && /^\p{Lu}/u.test(next)) || (BEFORE_NUMBER.test(before) && /^\(?[0-9٠-٩]/.test(next));
+
+/** Raw sentences: split at line breaks and after sentence-final punctuation, but not after an abbreviation. */
+function rawSentences(text: string): string[] {
+  const out: string[] = [];
+  for (const line of text.split(LINES)) {
+    let current = "";
+    for (const piece of line.split(SENTENCE_END)) {
+      if (current && !joins(current, piece)) {
+        out.push(current);
+        current = piece;
+      } else current = current ? `${current} ${piece}` : piece;
+    }
+    if (current) out.push(current);
+  }
+  return out;
+}
 const WS = /[ \t ]+/g;
 const WORD = /[\p{L}\p{N}_؀-ۿ]{3,}/gu;
 const MAX_SENTENCE = 400;
@@ -45,8 +70,7 @@ function stripEdges(s: string): string {
 /** Sentences of 12-400 characters; overlong ones are cut at clause boundaries. */
 export function splitSentences(text: string, limit = 600): string[] {
   const out: string[] = [];
-  for (const raw of (text || "").split(SPLIT)) {
-    if (raw === undefined) continue;
+  for (const raw of rawSentences(text || "")) {
     let sentence = stripEdges(raw.replace(WS, " "));
     if (sentence.length < MIN_SENTENCE) continue;
     while (sentence.length > MAX_SENTENCE) {
@@ -59,6 +83,48 @@ export function splitSentences(text: string, limit = 600): string[] {
     if (out.length >= limit) break;
   }
   return out.slice(0, limit);
+}
+
+const TURN = /^([^:\n]{2,60}):\s+(.+)$/;
+
+/** A dialogue as composed at the stand ("Speaker: words" on every line) as turns; null for any other text. */
+export function dialogueTurns(text: string): { speaker: string; text: string }[] | null {
+  const lines = (text || "").split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  const turns = lines.map((l) => l.match(TURN));
+  if (lines.length < 2 || turns.some((m) => !m)) return null;
+  return turns.map((m) => ({ speaker: m![1].trim(), text: m![2] }));
+}
+
+/**
+ * Sentences with who said them. In a dialogue each sentence keeps its speaker (and the
+ * "Speaker:" label stays out of the quoted words); any other text has no speaker.
+ */
+export function attributedSentences(text: string, limit = 600): { text: string; speaker: string | null }[] {
+  const turns = dialogueTurns(text);
+  if (!turns) return splitSentences(text, limit).map((s) => ({ text: s, speaker: null }));
+  const out: { text: string; speaker: string | null }[] = [];
+  for (const turn of turns) {
+    for (const s of splitSentences(turn.text, limit)) out.push({ text: s, speaker: turn.speaker });
+    if (out.length >= limit) break;
+  }
+  return out.slice(0, limit);
+}
+
+/**
+ * True when a transcript is stuck in a loop: the same phrase of 5 or more words three times back
+ * to back ("I was at the shop on the I was at the shop on the ..."). Speech models do this over
+ * silence or noise. People repeat themselves too, but rarely a long phrase three times running.
+ */
+export function repeatsItself(text: string): boolean {
+  const w = (text || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 5000);
+  for (let len = 5; len <= 30; len++) {
+    for (let i = 0; i + 3 * len <= w.length; i++) {
+      let same = true;
+      for (let k = 0; k < len && same; k++) same = w[i + k] === w[i + len + k] && w[i + k] === w[i + 2 * len + k];
+      if (same) return true;
+    }
+  }
+  return false;
 }
 
 export function stripMarkdown(text: string): string {

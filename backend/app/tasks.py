@@ -180,6 +180,12 @@ def process_evidence_job(evidence_id: str) -> None:
                 result = transcription.transcribe_file(path)
                 text, method = result["text"], "speech_to_text"
                 confidence = result["language_probability"]
+                from app.ai.text import repeats_itself
+
+                if repeats_itself(text):
+                    warnings.append("Part of this transcript repeats itself word for word, which usually means the "
+                                    "speech model lost its place (often over silence or noise). Check it against "
+                                    "the recording.")
             else:
                 warnings.append("Speech-to-text is unavailable; the recording was stored without a transcript.")
         else:
@@ -323,9 +329,13 @@ def finalize_statement_job(statement_id: str) -> None:
             latest = repo.get(statement_id)
             update["transcript_language"] = result["language"]
             update["transcript_confidence"] = result["language_probability"]
-            if result["text"] and latest and (len(latest.speakers or []) > 1 or latest.transcript_source == "edited"):
+            from app.ai.text import repeats_itself
+
+            if result["text"] and latest and (len(latest.speakers or []) > 1 or latest.transcript_source == "edited"
+                                              or (latest.transcript and repeats_itself(result["text"]))):
                 # A dialogue keeps who said what and a clerk's correction stands; the recording's
-                # own transcription goes beside the transcript instead of replacing it.
+                # own transcription goes beside the transcript instead of replacing it. So does a
+                # transcription stuck in a loop.
                 update["recording_transcript"] = result["text"]
             elif result["text"] and latest and latest.transcript_source != "edited":
                 update["transcript"] = result["text"]

@@ -9,7 +9,7 @@ import {
   audit, CASE_BUILDERS, CASE_EDITORS, HttpError, isUuid, notFoundUnlessUuid, nowISO, rateHit, requireRole, STAFF, uuid,
 } from "../core";
 import { bool, has, isoDate, oneOf, plausibleDeadline, route, Sse, Status, str } from "../router";
-import { db, save, type CaseRow } from "../store";
+import { db, save, type CaseRow, type RulingRow } from "../store";
 import {
   CASE_STATUSES, CASE_TYPES, caseOr404, casesForPerson, caseView, HEARING_ROLES, hearingView, ilike, nextCaseNumber,
   partiesOf, personView, statementsForCase, statementView,
@@ -85,7 +85,7 @@ route("GET", "/cases/{case_id}", (req) => {
     }),
     evidence_summary: { total: evidence.length, pending_review: evidence.filter((e) => e.review_status === "pending_review").length,
                         processing: evidence.filter((e) => ["queued", "processing"].includes(e.processing_status)).length },
-    ruling: ruling ?? null,
+    ruling: ruling ? rulingView(ruling) : null,
     assigned_judge: judge ? { id: judge.id, full_name: judge.full_name } : null,
     research_note_count: db().notes.filter((n) => n.case_id === c.id).length,
     statement_count: statementsForCase(c.id).length,
@@ -310,14 +310,16 @@ async function gatherBrief(c: CaseRow) {
   const sections: any[] = [];
   const offences = new Map<string, any>();
   const references = new Map<string, any>();
-  const addOffences = (mentions: any[] | undefined, source: string) => {
+  // A sentence someone else said in a statement (the judge's question) is marked with their name.
+  const said = (x: { text: string; speaker?: string }, own?: string | null) => (x.speaker && x.speaker !== own ? `${x.speaker}: ${x.text}` : x.text);
+  const addOffences = (mentions: any[] | undefined, source: string, own?: string | null) => {
     for (const m of mentions ?? []) {
-      const entry = offences.get(m.offence) ?? { offence: m.offence, label_en: m.label_en, label_ar: m.label_ar, sources: [], example: m.sentence };
+      const entry = offences.get(m.offence) ?? { offence: m.offence, label_en: m.label_en, label_ar: m.label_ar, sources: [], example: said({ text: m.sentence, speaker: m.speaker }, own) };
       if (!entry.sources.includes(source)) entry.sources.push(source);
       offences.set(m.offence, entry);
     }
   };
-  const best = (s: any[]) => [...s].sort((a, b) => (a.rank ?? a.index) - (b.rank ?? b.index)).slice(0, 2).sort((a, b) => a.index - b.index).map((x) => x.text);
+  const best = (s: any[], own?: string | null) => [...s].sort((a, b) => (a.rank ?? a.index) - (b.rank ?? b.index)).slice(0, 2).sort((a, b) => a.index - b.index).map((x) => said(x, own));
   if ((c.description ?? "").trim()) {
     const summary = await extractiveSummary(c.description!, 3, 700, false);
     if (summary.sentences.length) {
@@ -336,10 +338,10 @@ async function gatherBrief(c: CaseRow) {
   }
   for (const st of statementsForCase(c.id).slice(0, 8)) {
     const label = `Statement: ${st.person_name ?? st.role}`;
-    let sentences = best(st.summary?.sentences ?? []);
-    if (!sentences.length && (st.transcript ?? "").trim()) sentences = (await extractiveSummary(st.transcript!, 2, 1400, false)).sentences.map((s) => s.text);
+    let sentences = best(st.summary?.sentences ?? [], st.person_name);
+    if (!sentences.length && (st.transcript ?? "").trim()) sentences = (await extractiveSummary(st.transcript!, 2, 1400, false)).sentences.map((s) => said(s, st.person_name));
     if (sentences.length) sections.push({ kind: "statement", label, label_ar: `إفادة: ${st.person_name ?? st.role}`, ref: `statement:${st.id}`, sentences });
-    addOffences(st.offence_mentions, label);
+    addOffences(st.offence_mentions, label, st.person_name);
   }
   const timeline = c.timeline.filter((t) => t.event_date).sort((a, b) => a.event_date!.localeCompare(b.event_date!)).slice(0, 12)
     .map((t) => ({ date: t.event_date, description: t.description.slice(0, 300), source: t.source_label }));
@@ -458,9 +460,13 @@ route("GET", "/cases/{case_id}/ruling", (req) => {
   requireRole(req.user(), STAFF);
   const c = caseOr404(req.params.case_id);
   const r = db().rulings.find((x) => x.case_id === c.id);
-  if (!r) return null;
-  return { ...r, entered_by_name: db().users.find((u) => u.id === r.entered_by)?.full_name ?? null };
+  return r ? rulingView(r) : null;
 });
+
+/** The ruling with the name of the judge who entered it. */
+function rulingView(r: RulingRow) {
+  return { ...r, entered_by_name: db().users.find((u) => u.id === r.entered_by)?.full_name ?? null };
+}
 
 route("POST", "/cases/{case_id}/ruling", (req) => {
   // Only a judge can enter a ruling, and it is always attributed to the signed-in judge.

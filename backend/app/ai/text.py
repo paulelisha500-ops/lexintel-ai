@@ -10,8 +10,16 @@ _LATIN = re.compile(r"[A-Za-z]")
 # sometimes drift into them mid-sentence.
 _FOREIGN_SCRIPT = re.compile(r"[぀-ヿ㐀-䶿一-鿿가-힯Ѐ-ӿ฀-๿]")
 
-# Split after sentence-final punctuation (Latin and Arabic) or at line breaks.
-_SPLIT = re.compile(r"(?<=[.!?؟۔])\s+|\n+")
+# Split after sentence-final punctuation (Latin and Arabic) or at line breaks...
+_LINES = re.compile(r"\n+")
+_SENTENCE_END = re.compile(r"(?<=[.!?؟۔])\s+")
+# ...but not after an abbreviation: "Mr. Omar Farouk", "H.H. Sh. Mohammed", "Law No. 31 of 2021",
+# "Art. 5", "e.g. a lease". Titles and initials join a following capital, numbering words a
+# following number.
+_BEFORE_NAME = re.compile(r"(?:^|[\s(])(?:Mr|Mrs|Ms|Dr|Prof|Hon|Sh|Capt|Lt|Col|Gen|Sgt|[A-Z])\.$")
+_BEFORE_NUMBER = re.compile(r"(?:^|[\s(])(?:No|Nos|Art|Arts|Para|Sec|Cl|Vol|Ch|p|pp)\.$", re.IGNORECASE)
+_ALWAYS = re.compile(r"(?:^|[\s(])(?:e\.g|i\.e|cf|vs|viz)\.$", re.IGNORECASE)
+_NUMBER_START = re.compile(r"^\(?[0-9٠-٩]")
 _WS = re.compile(r"[ \t ]+")
 _WORD = re.compile(r"[\w؀-ۿ]{3,}", re.UNICODE)
 
@@ -40,10 +48,32 @@ def has_foreign_script(text: str) -> bool:
     return bool(_FOREIGN_SCRIPT.search(text))
 
 
+def _joins(before: str, following: str) -> bool:
+    return bool(_ALWAYS.search(before)
+                or (_BEFORE_NAME.search(before) and following[:1].isupper())
+                or (_BEFORE_NUMBER.search(before) and _NUMBER_START.match(following)))
+
+
+def _raw_sentences(text: str) -> list[str]:
+    """Split at line breaks and after sentence-final punctuation, but not after an abbreviation."""
+    out: list[str] = []
+    for line in _LINES.split(text):
+        current = ""
+        for piece in _SENTENCE_END.split(line):
+            if current and not _joins(current, piece):
+                out.append(current)
+                current = piece
+            else:
+                current = f"{current} {piece}" if current else piece
+        if current:
+            out.append(current)
+    return out
+
+
 def split_sentences(text: str, limit: int = 600) -> list[str]:
     """Sentences of 12-400 characters; overlong ones are cut at clause boundaries."""
     out: list[str] = []
-    for raw in _SPLIT.split(text or ""):
+    for raw in _raw_sentences(text or ""):
         sentence = _WS.sub(" ", raw).strip(" -•*‏‎")
         if len(sentence) < _MIN_SENTENCE:
             continue
@@ -57,6 +87,48 @@ def split_sentences(text: str, limit: int = 600) -> list[str]:
         if len(out) >= limit:
             break
     return out[:limit]
+
+
+_TURN = re.compile(r"^([^:\n]{2,60}):\s+(.+)$")
+
+
+def dialogue_turns(text: str) -> list[tuple[str, str]] | None:
+    """A dialogue as composed at the stand ("Speaker: words" on every line) as
+    (speaker, words) turns; None for any other text."""
+    lines = [line.strip() for line in (text or "").split("\n") if line.strip()]
+    turns = [_TURN.match(line) for line in lines]
+    if len(lines) < 2 or not all(turns):
+        return None
+    return [(m.group(1).strip(), m.group(2)) for m in turns]
+
+
+def attributed_sentences(text: str, limit: int = 600) -> list[tuple[str, str | None]]:
+    """(sentence, speaker) pairs. In a dialogue each sentence keeps its speaker (and the
+    "Speaker:" label stays out of the quoted words); any other text has no speaker."""
+    turns = dialogue_turns(text)
+    if turns is None:
+        return [(s, None) for s in split_sentences(text, limit)]
+    out: list[tuple[str, str | None]] = []
+    for speaker, words in turns:
+        out.extend((s, speaker) for s in split_sentences(words, limit))
+        if len(out) >= limit:
+            break
+    return out[:limit]
+
+
+_LOOP_WORD = re.compile(r"[^\w\s]", re.UNICODE)
+
+
+def repeats_itself(text: str) -> bool:
+    """True when a transcript is stuck in a loop: the same phrase of 5 or more words three times
+    back to back. Speech models do this over silence or noise. People repeat themselves too, but
+    rarely a long phrase three times running."""
+    w = _LOOP_WORD.sub(" ", (text or "").lower()).split()[:5000]
+    for size in range(5, 31):
+        for i in range(len(w) - 3 * size + 1):
+            if w[i:i + size] == w[i + size:i + 2 * size] == w[i + 2 * size:i + 3 * size]:
+                return True
+    return False
 
 
 _MD_MARKS = re.compile(r"(\*\*|__|`+|~~)")

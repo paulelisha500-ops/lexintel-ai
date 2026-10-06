@@ -13,12 +13,14 @@ import { AUDIO_VIDEO_EXTENSIONS, extensionOf, extractText } from "./ai/documents
 import { runCaseIntelligence } from "./ai/intelligence";
 import { parseArticles } from "./ai/law";
 import { transcribe } from "./ai/models";
-import { isArabic } from "./ai/text";
+import { isArabic, repeatsItself } from "./ai/text";
 import { triageComplaint } from "./ai/triage";
 import { nowISO, uuid } from "./core";
 import { db, files, onExternalChange, save } from "./store";
 
 type Job = ["process_evidence" | "classify_complaint" | "finalize_statement" | "summarize_statement" | "ingest_law_document", string];
+
+const LOOP_WARNING = "Part of this transcript repeats itself word for word, which usually means the speech model lost its place (often over silence or noise). Check it against the recording.";
 
 const queue: Job[] = [];
 let running = false;
@@ -91,6 +93,7 @@ const RUNNERS: Record<Job[0], (id: string) => Promise<void>> = {
         try {
           text = (await transcribe(blob)).text;
           method = "speech_to_text";
+          if (repeatsItself(text)) warnings.push(LOOP_WARNING);
         } catch (e) {
           warnings.push(`Speech-to-text could not run (${(e as Error).message}); the recording was stored without a transcript.`);
         }
@@ -174,7 +177,8 @@ const RUNNERS: Record<Job[0], (id: string) => Promise<void>> = {
       if (recordingText) {
         // A dialogue keeps who said what, and a clerk's correction stands; in both cases the
         // recording's own transcription is stored beside the transcript instead of replacing it.
-        if ((st.speakers?.length ?? 0) > 1 || st.transcript_source === "edited") st.recording_transcript = recordingText;
+        // A transcription stuck in a loop never replaces a live transcript either.
+        if ((st.speakers?.length ?? 0) > 1 || st.transcript_source === "edited" || (st.transcript && repeatsItself(recordingText))) st.recording_transcript = recordingText;
         else Object.assign(st, { transcript: recordingText, transcript_source: "final" });
       }
       transcript = st.transcript ?? "";
