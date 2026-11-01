@@ -4,7 +4,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # --- Web framework ---
-fastapi==0.141.1
+fastapi==0.162.0
 # Python 3.11 (see Dockerfile) needs typing_extensions.TypedDict, not
 # typing.TypedDict, for Pydantic v2 schema generation -- explicit here
 # rather than relying on it staying a transitive dep of fastapi/pydantic.
@@ -12,8 +12,8 @@ typing_extensions==4.16.0
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 websockets==13.1
-pydantic==2.13.5
-pydantic-settings==2.15.0
+pydantic==2.14.2
+pydantic-settings==2.16.2
 
 # --- Task queue / async infra ---
 celery==5.6.3
@@ -27,9 +27,9 @@ faiss-cpu==1.15.1
 sentence-transformers==3.4.1
 
 # --- NLP ---
-spacy==3.8.16
+spacy==3.8.18
 transformers==4.57.6
-torch==2.14.1+cpu
+torch==2.15.0+cpu
 
 # --- Computer vision / OCR / document processing ---
 pytesseract==0.3.13
@@ -39,10 +39,10 @@ pdf2image==1.17.0
 numpy==1.26.4
 
 # --- Databases ---
-sqlalchemy==2.1.1
+sqlalchemy==2.1.6
 psycopg2-binary==2.9.13
-pymongo==4.18.2
-neo4j==5.28.6
+pymongo==4.19.0
+neo4j==5.28.8
 elasticsearch==8.19.3
 
 # --- Auth (Module: Security) ---
@@ -55,5 +55,5 @@ beautifulsoup4==4.15.0
 pypdf==5.9.0
 
 # --- Utilities ---
-python-dotenv==1.2.3
-tenacity==9.1.4
+python-dotenv==1.2.4
+tenacity==9.2.1
